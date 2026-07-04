@@ -1,26 +1,239 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
+/* ═══════════════════════════════════════════════════════════════
+   DALINDA KAPIYA — DESIGN SYSTEM v1
+   Palette: "Orchard Copper"
+   Deep cherry wine × aged verdigris patina — the unexpected
+   tension of ripe fruit against orchard copper tools.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Static Palette ─────────────────────────────────────────── */
+@theme {
+  /* Cherry spectrum — the hero fruit */
+  --color-cherry-50:  oklch(97.5% 0.010  10);
+  --color-cherry-100: oklch(93.5% 0.030  12);
+  --color-cherry-200: oklch(87%   0.058  14);
+  --color-cherry-300: oklch(78%   0.092  15);
+  --color-cherry-400: oklch(66%   0.130  16);
+  --color-cherry-500: oklch(54%   0.170  18);
+  --color-cherry-600: oklch(45%   0.180  20);
+  --color-cherry-700: oklch(36%   0.160  22);
+  --color-cherry-800: oklch(28%   0.130  22);
+  --color-cherry-900: oklch(19%   0.090  22);
+  --color-cherry-950: oklch(11%   0.050  22);
+
+  /* Verdigris — the signature accent (aged copper, orchard tools) */
+  --color-verdigris-50:  oklch(97.5% 0.010 192);
+  --color-verdigris-100: oklch(93.5% 0.028 192);
+  --color-verdigris-200: oklch(86%   0.058 192);
+  --color-verdigris-300: oklch(76%   0.090 192);
+  --color-verdigris-400: oklch(63%   0.110 192);
+  --color-verdigris-500: oklch(53%   0.120 192);
+  --color-verdigris-600: oklch(44%   0.110 192);
+  --color-verdigris-700: oklch(35%   0.090 192);
+  --color-verdigris-800: oklch(26%   0.070 192);
+  --color-verdigris-900: oklch(17%   0.045 192);
+
+  /* Bark — warm earth neutrals */
+  --color-bark-50:  oklch(97%   0.008  55);
+  --color-bark-100: oklch(92%   0.016  55);
+  --color-bark-200: oklch(85%   0.026  55);
+  --color-bark-300: oklch(75%   0.038  55);
+  --color-bark-400: oklch(62%   0.046  55);
+  --color-bark-500: oklch(52%   0.042  55);
+  --color-bark-600: oklch(42%   0.036  55);
+  --color-bark-700: oklch(32%   0.028  55);
+  --color-bark-800: oklch(22%   0.020  55);
+  --color-bark-900: oklch(12%   0.012  55);
+
+  /* Border radius scale */
+  --radius-xs:   0.125rem;
+  --radius-sm:   0.25rem;
+  --radius-md:   0.5rem;
+  --radius-lg:   0.875rem;
+  --radius-xl:   1.25rem;
+  --radius-2xl:  2rem;
+  --radius-full: 9999px;
+
+  /* Cherry-tinted shadows */
+  --shadow-xs:  0 1px 2px 0 oklch(28% 0.13 22 / 0.08);
+  --shadow-sm:  0 1px 3px 0 oklch(28% 0.13 22 / 0.12),
+                0 1px 2px -1px oklch(28% 0.13 22 / 0.08);
+  --shadow-md:  0 4px 6px -1px oklch(28% 0.13 22 / 0.12),
+                0 2px 4px -2px oklch(28% 0.13 22 / 0.08);
+  --shadow-lg:  0 10px 15px -3px oklch(28% 0.13 22 / 0.14),
+                0 4px 6px -4px oklch(28% 0.13 22 / 0.08);
+  --shadow-xl:  0 20px 25px -5px oklch(28% 0.13 22 / 0.16),
+                0 8px 10px -6px oklch(28% 0.13 22 / 0.08);
+  --shadow-2xl: 0 25px 50px -12px oklch(28% 0.13 22 / 0.30);
+}
+
+/* ── Semantic tokens — Light Mode "Orchard Day" ────────────── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Surfaces */
+  --bg:          oklch(97%   0.008  55); /* orchard fog */
+  --bg-surface:  oklch(100%  0      0 );
+  --bg-raised:   oklch(98.5% 0.005  55);
+  --bg-sunken:   oklch(94%   0.012  55);
+  --bg-cherry:   oklch(93.5% 0.030  12); /* blossom wash */
+
+  /* Text */
+  --fg:          oklch(12%   0.012  55); /* bark black */
+  --fg-muted:    oklch(52%   0.042  55); /* field dust */
+  --fg-subtle:   oklch(68%   0.030  55);
+  --fg-inverted: oklch(97%   0.008  55);
+
+  /* Brand */
+  --brand:       oklch(28%   0.130  22); /* cherry wine — primary */
+  --brand-hi:    oklch(36%   0.160  22);
+  --cta:         oklch(45%   0.180  20); /* ripe cherry — CTAs */
+  --cta-hi:      oklch(54%   0.170  18);
+  --accent:      oklch(44%   0.110 192); /* verdigris — signature */
+  --accent-hi:   oklch(53%   0.120 192);
+  --accent-pale: oklch(86%   0.058 192);
+
+  /* Borders */
+  --brd:         oklch(88%   0.018  55);
+  --brd-strong:  oklch(75%   0.030  55);
+  --brd-brand:   oklch(36%   0.160  22 / 0.30);
+
+  /* Focus ring */
+  --ring: oklch(44% 0.110 192);
 }
 
+/* ── Semantic tokens — Dark Mode "Night Harvest" ───────────── */
+.dark {
+  /* Surfaces */
+  --bg:          oklch(9%    0.025  22); /* midnight orchard */
+  --bg-surface:  oklch(12%   0.030  22);
+  --bg-raised:   oklch(15%   0.035  22);
+  --bg-sunken:   oklch(7%    0.018  22);
+  --bg-cherry:   oklch(15%   0.045  18);
+
+  /* Text */
+  --fg:          oklch(94%   0.008  55); /* moonlight */
+  --fg-muted:    oklch(62%   0.028  55);
+  --fg-subtle:   oklch(42%   0.020  55);
+  --fg-inverted: oklch(12%   0.012  55);
+
+  /* Brand */
+  --brand:       oklch(68%   0.160  14); /* moonlit cherry */
+  --brand-hi:    oklch(75%   0.140  12);
+  --cta:         oklch(58%   0.180  16);
+  --cta-hi:      oklch(68%   0.160  14);
+  --accent:      oklch(63%   0.110 192); /* copper on dark */
+  --accent-hi:   oklch(70%   0.100 192);
+  --accent-pale: oklch(22%   0.065 192);
+
+  /* Borders */
+  --brd:         oklch(22%   0.040  22);
+  --brd-strong:  oklch(30%   0.060  22);
+  --brd-brand:   oklch(68%   0.160  14 / 0.25);
+
+  /* Focus ring */
+  --ring: oklch(63% 0.110 192);
+}
+
+/* ── Dynamic Tailwind utility mapping ───────────────────────── */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Fonts — resolved via next/font CSS vars injected into <html> */
+  --font-serif: var(--font-cormorant);
+  --font-sans:  var(--font-jakarta);
+  --font-mono:  var(--font-dm-mono);
+
+  /* Semantic color utilities */
+  --color-background:    var(--bg);
+  --color-surface:       var(--bg-surface);
+  --color-raised:        var(--bg-raised);
+  --color-sunken:        var(--bg-sunken);
+  --color-cherry-wash:   var(--bg-cherry);
+
+  --color-text:          var(--fg);
+  --color-muted:         var(--fg-muted);
+  --color-subtle:        var(--fg-subtle);
+  --color-inverted:      var(--fg-inverted);
+
+  --color-primary:       var(--brand);
+  --color-primary-hover: var(--brand-hi);
+  --color-cta:           var(--cta);
+  --color-cta-hover:     var(--cta-hi);
+  --color-accent:        var(--accent);
+  --color-accent-hover:  var(--accent-hi);
+  --color-accent-light:  var(--accent-pale);
+
+  --color-border:        var(--brd);
+  --color-border-strong: var(--brd-strong);
+  --color-border-brand:  var(--brd-brand);
+
+  --color-ring:          var(--ring);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* ── Base layer ─────────────────────────────────────────────── */
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
+    scroll-behavior: smooth;
+    color-scheme: light;
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-jakarta, ui-sans-serif, system-ui, sans-serif);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100dvh;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  ::selection {
+    background-color: oklch(45% 0.18 20 / 0.18);
+    color: var(--fg);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* ── Component helpers ──────────────────────────────────────── */
+@layer components {
+  .container-page {
+    width: 100%;
+    max-width: 1280px;
+    margin-inline: auto;
+    padding-inline: clamp(1rem, 4vw, 3rem);
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
 }

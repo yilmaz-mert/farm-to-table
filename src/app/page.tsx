@@ -1,65 +1,103 @@
-import Image from "next/image";
+import Link from 'next/link'
+import { ArrowRight, Leaf, Truck, ShieldCheck } from 'lucide-react'
+import { ShopNavbar } from '@/components/shared/navbar'
+import { ShopFooter } from '@/components/shared/footer'
+import { ShippingCalculator } from '@/components/shared/ShippingCalculator'
+import { HeroSection } from '@/components/sections/HeroSection'
+import { StorySection } from '@/components/sections/StorySection'
+import { ProductsSection } from '@/components/sections/ProductsSection'
+import { TransparencySection } from '@/components/sections/TransparencySection'
+import { GallerySection } from '@/components/sections/GallerySection'
 
-export default function Home() {
+const features = [
+  {
+    icon: Leaf,
+    title: 'Sertifikalı Organik',
+    desc: 'Hiçbir sentetik ilaç, kimyasal katkı ya da yapay koruyucu.',
+  },
+  {
+    icon: Truck,
+    title: 'Aynı Gün Kargo',
+    desc: 'Hasat sabahından itibaren 24 saat içinde soğuk zincirde kapınızda.',
+  },
+  {
+    icon: ShieldCheck,
+    title: 'Meyve Garantisi',
+    desc: 'Kaliteden memnun kalmazsanız eksiksiz iade — soru sormaksızın.',
+  },
+]
+
+/**
+ * One-page storytelling flow:
+ * Hero (emotion) → Trust strip (credibility) → Products (conversion)
+ * → Shipping (objection removal) → Story (depth) → Transparency (trust)
+ * → Gallery (social proof) → Editorial CTA (final push).
+ * ScarcityBar lives inside ShopNavbar's sticky header.
+ */
+export default function HomePage() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <>
+      <ShopNavbar />
+
+      <main>
+        <HeroSection />
+
+        {/* ── Trust strip ─────────────────────────────────────── */}
+        <section className="border-y border-border bg-raised" aria-label="Özelliklerimiz">
+          <div className="container-page">
+            <div className="grid divide-y divide-border sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+              {features.map(({ icon: Icon, title, desc }) => (
+                <div key={title} className="flex items-start gap-4 px-2 py-8 sm:px-6">
+                  <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-cherry-wash">
+                    <Icon className="h-5 w-5 text-primary" aria-hidden />
+                  </div>
+                  <div>
+                    <p className="font-sans text-sm font-semibold text-text">{title}</p>
+                    <p className="mt-1 font-sans text-sm text-muted">{desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <ProductsSection />
+
+        <ShippingCalculator />
+
+        <StorySection />
+
+        <TransparencySection />
+
+        <GallerySection />
+
+        {/* ── Editorial CTA ────────────────────────────────────── */}
+        <section className="bg-background py-28 text-center">
+          <div className="container-page">
+            <p className="mb-3 font-mono text-xs font-medium uppercase tracking-[0.18em] text-accent">
+              Bu sezon
+            </p>
+            <h2 className="font-serif text-[clamp(2.5rem,7vw,5rem)] font-light italic leading-[1.05] text-text">
+              İki Meyve,
+              <br />
+              <span className="text-primary">Tek Bahçe.</span>
+            </h2>
+            <p className="mx-auto mt-6 max-w-sm font-sans text-base text-muted">
+              Taze yaz kirazı ve kendine özgü ekşisiyle vişne —
+              aynı toprağın iki farklı hikâyesi.
+            </p>
+            <Link
+              href="#urunler"
+              className="mt-10 inline-flex items-center gap-2 rounded-lg bg-accent px-6 py-3 font-sans text-base font-semibold text-inverted shadow-sm transition-colors duration-150 hover:bg-accent-hover active:scale-[0.98]"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+              Kutunu Seç
+              <ArrowRight className="h-4 w-4" aria-hidden />
+            </Link>
+          </div>
+        </section>
       </main>
-    </div>
-  );
+
+      <ShopFooter />
+    </>
+  )
 }
