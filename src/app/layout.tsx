@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { Cormorant_Garamond, Plus_Jakarta_Sans, DM_Mono } from 'next/font/google'
+import { ThemeProvider } from 'next-themes'
 import { LenisProvider } from '@/components/shared/LenisProvider'
 import { FloatingWhatsApp } from '@/components/shared/FloatingWhatsApp'
 import { CartDrawer } from '@/components/shop/CartDrawer'
@@ -72,14 +73,17 @@ export default function RootLayout({
     <html
       lang="tr"
       className={`${cormorant.variable} ${jakartaSans.variable} ${dmMono.variable}`}
+      data-scroll-behavior="smooth"
       suppressHydrationWarning
     >
       <body className="antialiased">
-        <LenisProvider>
-          {children}
-          <FloatingWhatsApp />
-          <CartDrawer />
-        </LenisProvider>
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+          <LenisProvider>
+            {children}
+            <FloatingWhatsApp />
+            <CartDrawer />
+          </LenisProvider>
+        </ThemeProvider>
       </body>
     </html>
   )

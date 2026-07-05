@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react'
 import { motion, AnimatePresence, useInView, useReducedMotion } from 'framer-motion'
 import { QrCode, Clock, Map, Users, Fingerprint } from 'lucide-react'
+import { SectionBackground } from '@/components/shared/SectionBackground'
 
 const ease: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
 
@@ -58,14 +59,20 @@ const TRACE_FIELDS = [
   },
 ]
 
-export function TransparencySection() {
+interface TransparencySectionProps {
+  /** Admin-editable ambient background, shared with StorySection. */
+  featuresBgUrl?: string | null
+}
+
+export function TransparencySection({ featuresBgUrl }: TransparencySectionProps) {
   const secRef = useRef<HTMLDivElement>(null)
   const inView = useInView(secRef, { once: true, margin: '-80px 0px' })
   const reduced = useReducedMotion() ?? false
   const [revealed, setRevealed] = useState(false)
 
   return (
-    <section className="bg-background py-24">
+    <section className="relative overflow-hidden bg-background py-24">
+      <SectionBackground imageUrl={featuresBgUrl} />
       <div className="container-page">
         <div
           ref={secRef}

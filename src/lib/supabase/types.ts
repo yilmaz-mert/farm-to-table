@@ -32,6 +32,7 @@ export type Database = {
           id: string
           name: string
           description: string | null
+          marketing_copy: string | null
           price_per_kg: number
           total_price: number
           package_weight_kg: number
@@ -44,6 +45,7 @@ export type Database = {
           id?: string
           name: string
           description?: string | null
+          marketing_copy?: string | null
           price_per_kg: number
           total_price: number
           package_weight_kg: number
@@ -56,6 +58,7 @@ export type Database = {
           id?: string
           name?: string
           description?: string | null
+          marketing_copy?: string | null
           price_per_kg?: number
           total_price?: number
           package_weight_kg?: number
@@ -162,6 +165,69 @@ export type Database = {
           invoice_url?: string | null
           reserved_until?: string | null
           created_at?: string
+        }
+        Relationships: []
+      }
+      store_settings: {
+        Row: {
+          id: number
+          urgency_blitz_mode: boolean
+          hero_image_url: string | null
+          hero_video_url: string | null
+          products_bg_url: string | null
+          features_bg_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          urgency_blitz_mode?: boolean
+          hero_image_url?: string | null
+          hero_video_url?: string | null
+          products_bg_url?: string | null
+          features_bg_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          urgency_blitz_mode?: boolean
+          hero_image_url?: string | null
+          hero_video_url?: string | null
+          products_bg_url?: string | null
+          features_bg_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      gallery_shots: {
+        Row: {
+          id: string
+          slot_index: number
+          kind: 'harvest' | 'unboxing'
+          image_url: string | null
+          title: string
+          harvest_time: string
+          location_tag: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          slot_index: number
+          kind?: 'harvest' | 'unboxing'
+          image_url?: string | null
+          title?: string
+          harvest_time?: string
+          location_tag?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          slot_index?: number
+          kind?: 'harvest' | 'unboxing'
+          image_url?: string | null
+          title?: string
+          harvest_time?: string
+          location_tag?: string
+          updated_at?: string
         }
         Relationships: []
       }

@@ -12,64 +12,81 @@ interface Shot {
   id: string
   kind: ShotKind
   title: string
-  caption: string
+  locationTag: string
   time: string
+  imageUrl: string | null
   /**
-   * Swap-ready: replace `art` gradients with real photos via next/image
-   * (fill + sizes + placeholder="blur") — aspect ratio is already fixed
-   * by the card container, so the change is zero-CLS.
+   * Decorative fallback shown until an admin uploads a real photo for this
+   * slot (see /admin/settings gallery editor) — aspect ratio is already
+   * fixed by the card container, so swapping in `imageUrl` is zero-CLS.
    */
   art: string
 }
+
+/** Gradient fallback per grid position, used when a slot has no image_url yet. */
+const SLOT_ART = [
+  'linear-gradient(135deg, oklch(36% 0.16 22), oklch(19% 0.09 22) 60%, oklch(26% 0.07 192))',
+  'linear-gradient(160deg, oklch(44% 0.11 192), oklch(17% 0.045 192) 70%)',
+  'linear-gradient(145deg, oklch(54% 0.17 18), oklch(28% 0.13 22) 65%)',
+  'linear-gradient(150deg, oklch(76% 0.09 192), oklch(35% 0.09 192) 75%)',
+  'linear-gradient(140deg, oklch(66% 0.13 16), oklch(36% 0.16 22) 70%, oklch(19% 0.09 22))',
+  'linear-gradient(155deg, oklch(45% 0.18 20), oklch(11% 0.05 22) 80%)',
+]
 
 const SHOTS: Shot[] = [
   {
     id: 'shot-0611-01',
     kind: 'harvest',
     title: 'Günün ilk kasası',
-    caption: 'Kuzey Yamaç parselinde sabah 06:30 — çiy hâlâ dalların üzerinde.',
+    locationTag: 'Kuzey Yamaç, Parsel 3',
     time: 'Bu sabah 06:38',
-    art: 'linear-gradient(135deg, oklch(36% 0.16 22), oklch(19% 0.09 22) 60%, oklch(26% 0.07 192))',
+    imageUrl: null,
+    art: SLOT_ART[0],
   },
   {
     id: 'shot-0611-02',
     kind: 'harvest',
     title: 'Kalibrasyon bandı',
-    caption: '26 mm altı hiçbir kiraz kutuya girmez — bant hepsini tek tek ölçer.',
+    locationTag: 'Paketleme Tesisi',
     time: 'Bu sabah 08:15',
-    art: 'linear-gradient(160deg, oklch(44% 0.11 192), oklch(17% 0.045 192) 70%)',
+    imageUrl: null,
+    art: SLOT_ART[1],
   },
   {
     id: 'shot-0611-03',
     kind: 'unboxing',
     title: '“Kokusu odayı sardı”',
-    caption: 'Zeynep A., İstanbul — 2 KG Özel Kutu ile ikinci siparişi.',
+    locationTag: 'İstanbul',
     time: 'Dün 19:04',
-    art: 'linear-gradient(145deg, oklch(54% 0.17 18), oklch(28% 0.13 22) 65%)',
+    imageUrl: null,
+    art: SLOT_ART[2],
   },
   {
     id: 'shot-0611-04',
     kind: 'harvest',
     title: 'Jel buz yerleşimi',
-    caption: 'Her kutuya çift kat jel buz — soğuk zincir kapınıza kadar kırılmaz.',
+    locationTag: 'Paketleme Tesisi',
     time: 'Bu sabah 09:47',
-    art: 'linear-gradient(150deg, oklch(76% 0.09 192), oklch(35% 0.09 192) 75%)',
+    imageUrl: null,
+    art: SLOT_ART[3],
   },
   {
     id: 'shot-0611-05',
     kind: 'unboxing',
     title: '“Çocuklar bayıldı”',
-    caption: 'Murat K., Ankara — 5 KG Aile Kutusu, ertesi gün teslim.',
+    locationTag: 'Ankara',
     time: 'Dün 21:30',
-    art: 'linear-gradient(140deg, oklch(66% 0.13 16), oklch(36% 0.16 22) 70%, oklch(19% 0.09 22))',
+    imageUrl: null,
+    art: SLOT_ART[4],
   },
   {
     id: 'shot-0611-06',
     kind: 'harvest',
     title: 'Vişne parseli',
-    caption: 'Güney yamacın vişneleri bir hafta sonra tam olgunlukta olacak.',
+    locationTag: 'Güney Yamaç, Parsel 7',
     time: 'Bu sabah 11:02',
-    art: 'linear-gradient(155deg, oklch(45% 0.18 20), oklch(11% 0.05 22) 80%)',
+    imageUrl: null,
+    art: SLOT_ART[5],
   },
 ]
 
@@ -120,6 +137,17 @@ function Lightbox({ shot, onClose }: { shot: Shot; onClose: () => void }) {
       >
         {/* Visual */}
         <div className="relative aspect-square w-full" style={{ background: shot.art }}>
+          {shot.imageUrl && (
+            // Admin-uploaded photo — plain <img> keeps this independent of
+            // next/image's remote-pattern config (storage bucket is public).
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={shot.imageUrl}
+              alt={shot.title}
+              decoding="async"
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+          )}
           <button
             ref={closeRef}
             onClick={onClose}
@@ -128,7 +156,7 @@ function Lightbox({ shot, onClose }: { shot: Shot; onClose: () => void }) {
           >
             <X className="h-4 w-4" aria-hidden />
           </button>
-          <span className="absolute bottom-4 left-4 flex items-center gap-1.5 rounded-full bg-bark-900/50 px-3 py-1 font-sans text-xs font-medium text-white backdrop-blur-sm">
+          <span className="absolute bottom-4 left-4 flex items-center gap-1.5 rounded-full bg-bark-900/45 px-3 py-1 font-sans text-xs font-medium text-white backdrop-blur-sm">
             <Icon className="h-3.5 w-3.5" aria-hidden />
             {label}
           </span>
@@ -141,7 +169,7 @@ function Lightbox({ shot, onClose }: { shot: Shot; onClose: () => void }) {
             <span className="shrink-0 font-mono text-[11px] text-subtle">{shot.time}</span>
           </div>
           <p className="mt-1.5 font-sans text-sm leading-relaxed text-muted">
-            {shot.caption}
+            {shot.locationTag}
           </p>
         </div>
       </motion.div>
@@ -177,6 +205,19 @@ function GalleryCard({
     >
       {/* Fixed aspect ratio guarantees zero layout shift */}
       <div className="relative aspect-square w-full" style={{ background: shot.art }}>
+        {shot.imageUrl && (
+          // Admin-uploaded photo, likely full camera resolution — lazy +
+          // async decode keeps 6 of these mounting at once from blocking
+          // the main thread during scroll.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={shot.imageUrl}
+            alt={shot.title}
+            loading="lazy"
+            decoding="async"
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        )}
         {/* Kind chip */}
         <span className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-bark-900/45 px-2.5 py-1 font-sans text-[11px] font-medium text-white backdrop-blur-sm">
           <Icon className="h-3 w-3" aria-hidden />
@@ -193,14 +234,41 @@ function GalleryCard({
   )
 }
 
-export function GallerySection() {
+export interface GalleryShotContent {
+  kind: ShotKind
+  title: string
+  harvestTime: string
+  locationTag: string
+  imageUrl: string | null
+}
+
+interface GallerySectionProps {
+  /** Live rows from `gallery_shots`, ordered by slot_index — falls back to
+   *  the hardcoded SHOTS array (by grid position) when a slot is missing. */
+  shots?: GalleryShotContent[]
+}
+
+export function GallerySection({ shots: dbShots }: GallerySectionProps) {
   const hdrRef = useRef<HTMLDivElement>(null)
   const hdrInView = useInView(hdrRef, { once: true, margin: '-80px 0px' })
   const reduced = useReducedMotion() ?? false
   const [openShot, setOpenShot] = useState<Shot | null>(null)
 
+  const shots =
+    dbShots && dbShots.length > 0
+      ? dbShots.map((s, i) => ({
+          id: SHOTS[i]?.id ?? `gallery-slot-${i + 1}`,
+          kind: s.kind,
+          title: s.title || SHOTS[i]?.title || '',
+          time: s.harvestTime || SHOTS[i]?.time || '',
+          locationTag: s.locationTag || SHOTS[i]?.locationTag || '',
+          imageUrl: s.imageUrl,
+          art: SLOT_ART[i % SLOT_ART.length],
+        }))
+      : SHOTS
+
   return (
-    <section className="bg-sunken py-24">
+    <section id="bahce" className="bg-sunken py-24 scroll-mt-24">
       <div className="container-page">
         {/* Header */}
         <div ref={hdrRef} className="mb-12 flex flex-wrap items-end justify-between gap-4">
@@ -235,7 +303,7 @@ export function GallerySection() {
 
         {/* Grid */}
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-          {SHOTS.map((shot, i) => (
+          {shots.map((shot, i) => (
             <GalleryCard
               key={shot.id}
               shot={shot}

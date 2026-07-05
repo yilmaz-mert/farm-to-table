@@ -1,18 +1,19 @@
 'use client'
 
 import Link from 'next/link'
-import { ShoppingBag, Menu, X } from 'lucide-react'
-import { useState } from 'react'
+import { ShoppingBag, Menu, X, Sun, Moon } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { useTheme } from 'next-themes'
 import { useCartStore, cartItemCount } from '@/store/cart'
 import { useUIStore } from '@/store/ui'
 import { cn } from '@/lib/utils'
 import { ScarcityBar } from './ScarcityBar'
 
 const navLinks = [
-  { label: 'Mağaza', href: '/shop' },
-  { label: 'Hakkımızda', href: '/about' },
-  { label: 'Bahçemiz', href: '/orchard' },
-  { label: 'İletişim', href: '/contact' },
+  { label: 'Mağaza', href: '#urunler' },
+  { label: 'Hikayemiz', href: '#hikaye' },
+  { label: 'Bahçemiz', href: '#bahce' },
+  { label: 'İletişim', href: '#iletisim' },
 ]
 
 export function ShopNavbar() {
@@ -20,6 +21,10 @@ export function ShopNavbar() {
   const items = useCartStore((s) => s.items)
   const totalItems = cartItemCount(items)
   const toggleCartDrawer = useUIStore((s) => s.toggleCartDrawer)
+
+  const { resolvedTheme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
 
   return (
     <header className="sticky top-0 z-50 bg-background/90 backdrop-blur-md supports-[backdrop-filter]:bg-background/75">
@@ -51,6 +56,18 @@ export function ShopNavbar() {
 
         {/* Action bar */}
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-text transition-colors hover:bg-raised"
+            aria-label={resolvedTheme === 'dark' ? 'Aydınlık moda geç' : 'Karanlık moda geç'}
+          >
+            {mounted && resolvedTheme === 'dark' ? (
+              <Sun className="h-5 w-5" aria-hidden />
+            ) : (
+              <Moon className="h-5 w-5" aria-hidden />
+            )}
+          </button>
+
           <button
             onClick={toggleCartDrawer}
             className="relative flex h-9 w-9 items-center justify-center rounded-lg text-text transition-colors hover:bg-raised"

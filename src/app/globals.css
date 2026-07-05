@@ -236,4 +236,15 @@
     white-space: nowrap;
     border-width: 0;
   }
+
+  /* Hides the native scrollbar chrome while leaving wheel/touch/keyboard
+     scrolling fully functional — visual only, `overflow` is untouched. */
+  .scrollbar-none {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
 }

@@ -2,12 +2,13 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Package } from 'lucide-react'
+import { LayoutDashboard, Package, SlidersHorizontal } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const NAV = [
-  { href: '/admin', label: 'Dashboard', Icon: LayoutDashboard },
+  { href: '/admin', label: 'Özet', Icon: LayoutDashboard },
   { href: '/admin/orders', label: 'Siparişler', Icon: Package },
+  { href: '/admin/settings', label: 'Ayarlar', Icon: SlidersHorizontal },
 ]
 
 export function AdminBottomNav() {

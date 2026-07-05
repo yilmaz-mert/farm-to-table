@@ -5,7 +5,6 @@ import {
   Minus,
   Plus,
   Save,
-  RefreshCw,
   TrendingUp,
   Package,
   ShoppingBag,
@@ -300,16 +299,29 @@ export default function AdminDashboardPage() {
         .gte('created_at', `${todayStr}T00:00:00Z`),
     ])
 
-    // Create harvest log for today if it doesn't exist
-    if (!logRes.data && !logRes.error) {
+    if (logRes.data) {
+      setLog(logRes.data)
+    } else {
+      // No row for today yet — upsert (not insert) so a second admin tab
+      // loading at the same moment can't race into a duplicate-key error.
+      // If this itself fails, fall back to a client-side default so the
+      // dashboard never shows a dead-end "not found" state.
       const { data: newLog } = await supabase
         .from('daily_harvest_logs')
-        .insert({ harvest_date: todayStr, total_box_quota: 50, remaining_boxes: 50 })
+        .upsert(
+          { harvest_date: todayStr, total_box_quota: 50, remaining_boxes: 50 },
+          { onConflict: 'harvest_date' }
+        )
         .select()
         .single()
-      setLog(newLog)
-    } else {
-      setLog(logRes.data ?? null)
+      setLog(
+        newLog ?? {
+          id: todayStr,
+          harvest_date: todayStr,
+          total_box_quota: 50,
+          remaining_boxes: 50,
+        }
+      )
     }
 
     setProducts(productsRes.data ?? [])
@@ -363,20 +375,7 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Harvest quota */}
-      {log ? (
-        <QuotaController log={log} onUpdate={fetchData} />
-      ) : (
-        <div className="rounded-2xl border border-border bg-surface p-5 text-center">
-          <p className="font-sans text-sm text-muted">Hasat kaydı bulunamadı.</p>
-          <button
-            onClick={fetchData}
-            className="mt-3 flex items-center gap-1.5 mx-auto font-sans text-sm font-medium text-primary"
-          >
-            <RefreshCw className="h-3.5 w-3.5" />
-            Tekrar Dene
-          </button>
-        </div>
-      )}
+      {log && <QuotaController log={log} onUpdate={fetchData} />}
 
       {/* Price editor */}
       {products.length > 0 && <PriceEditor products={products} onUpdate={fetchData} />}

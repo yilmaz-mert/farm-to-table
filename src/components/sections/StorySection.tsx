@@ -3,6 +3,7 @@
 import { useRef } from 'react'
 import { motion, useInView } from 'framer-motion'
 import { FlaskConical, ScanLine, PackageCheck } from 'lucide-react'
+import { SectionBackground } from '@/components/shared/SectionBackground'
 
 const ease: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
 
@@ -80,12 +81,18 @@ function StoryCard({
   )
 }
 
-export function StorySection() {
+interface StorySectionProps {
+  /** Admin-editable ambient background, shared with TransparencySection. */
+  featuresBgUrl?: string | null
+}
+
+export function StorySection({ featuresBgUrl }: StorySectionProps) {
   const hdrRef = useRef<HTMLDivElement>(null)
   const hdrInView = useInView(hdrRef, { once: true, margin: '-80px 0px' })
 
   return (
-    <section className="bg-sunken py-24">
+    <section id="hikaye" className="relative overflow-hidden bg-sunken py-24 scroll-mt-24">
+      <SectionBackground imageUrl={featuresBgUrl} overlayClassName="bg-sunken/85" />
       <div className="container-page">
         {/* Header */}
         <div ref={hdrRef} className="mb-16 max-w-2xl">

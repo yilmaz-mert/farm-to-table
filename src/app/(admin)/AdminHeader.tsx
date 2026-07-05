@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 const TITLES: Record<string, string> = {
   '/admin': 'Dashboard',
   '/admin/orders': 'Siparişler',
-  '/admin/pricing': 'Fiyatlandırma',
+  '/admin/settings': 'Ayarlar',
 }
 
 interface AdminHeaderProps {

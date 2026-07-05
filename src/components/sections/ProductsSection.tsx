@@ -4,8 +4,10 @@ import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence, useInView, useReducedMotion } from 'framer-motion'
 import { Minus, Plus, Check, CalendarClock } from 'lucide-react'
 import { useCartStore, type CartItem } from '@/store/cart'
+import { useUIStore } from '@/store/ui'
 import { formatPrice } from '@/lib/utils'
 import { getBlackoutInfo } from '@/lib/harvest'
+import { SectionBackground } from '@/components/shared/SectionBackground'
 
 const ease: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
 
@@ -48,18 +50,6 @@ const PACKAGES: Package[] = [
     imageUrl: '/images/products/kiraz-2kg.jpg',
   },
   {
-    productId: 'organik-kiraz',
-    variantId: 'kiraz-5kg-aile',
-    name: 'Organik Kiraz',
-    slug: 'organik-kiraz',
-    variant: '5 KG Aile Kutusu',
-    weightGrams: 5000,
-    priceInKurus: 189000,
-    description: 'Kalabalık sofralar ve reçellik ayırmak isteyenler için.',
-    highlight: 'Kilo Başı Avantaj',
-    imageUrl: '/images/products/kiraz-5kg.jpg',
-  },
-  {
     productId: 'organik-visne',
     variantId: 'visne-3kg-mutfak',
     name: 'Organik Vişne',
@@ -71,6 +61,18 @@ const PACKAGES: Package[] = [
     highlight: null,
     imageUrl: '/images/products/visne-3kg.jpg',
   },
+  {
+    productId: 'organik-kiraz',
+    variantId: 'kiraz-5kg-aile',
+    name: 'Organik Kiraz',
+    slug: 'organik-kiraz',
+    variant: '5 KG Aile Kutusu',
+    weightGrams: 5000,
+    priceInKurus: 189000,
+    description: 'Kalabalık sofralar ve reçellik ayırmak isteyenler için.',
+    highlight: 'Kilo Başı Avantaj',
+    imageUrl: '/images/products/kiraz-5kg.jpg',
+  },
 ]
 
 function ProductCard({ pkg, index }: { pkg: Package; index: number }) {
@@ -81,6 +83,7 @@ function ProductCard({ pkg, index }: { pkg: Package; index: number }) {
   const [qty, setQty] = useState(1)
   const [added, setAdded] = useState(false)
   const addItem = useCartStore((s) => s.addItem)
+  const openCartDrawer = useUIStore((s) => s.openCartDrawer)
 
   const lineTotal = pkg.priceInKurus * qty
 
@@ -99,6 +102,7 @@ function ProductCard({ pkg, index }: { pkg: Package; index: number }) {
     }
     addItem(item)
     setAdded(true)
+    openCartDrawer()
     setQty(1)
   }
 
@@ -129,7 +133,7 @@ function ProductCard({ pkg, index }: { pkg: Package; index: number }) {
         <p className="font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-accent">
           {pkg.name}
         </p>
-        <h3 className="mt-1.5 font-serif text-2xl font-medium italic text-text">
+        <h3 className="mt-1.5 font-serif text-2xl font-medium italic text-text lining-nums">
           {pkg.variant}
         </h3>
         <p className="mt-2.5 min-h-10 font-sans text-sm leading-relaxed text-muted">
@@ -217,7 +221,27 @@ function ProductCard({ pkg, index }: { pkg: Package; index: number }) {
   )
 }
 
-export function ProductsSection() {
+export interface ProductContent {
+  priceInKurus: number
+  /** Main product title (mono caption + cart/checkout item name), e.g.
+   *  "Organik Kiraz · 1 kg" — fully admin-editable, no hardcoded fruit name. */
+  name: string
+  /** Package variant title shown as the card heading, e.g. "1 KG Deneme Kutusu" */
+  variantTitle: string
+  /** Marketing sentence shown below the heading */
+  description: string
+}
+
+interface ProductsSectionProps {
+  /** Live content from `products`, keyed by `weightGrams` — falls back to the
+   *  hardcoded PACKAGES fields when a weight has no matching DB row. Each
+   *  package's title is an independent string with no shared substitution. */
+  dbContent?: Record<number, ProductContent>
+  /** Admin-editable ambient section background (see /admin/settings). */
+  productsBgUrl?: string | null
+}
+
+export function ProductsSection({ dbContent, productsBgUrl }: ProductsSectionProps) {
   const hdrRef = useRef<HTMLDivElement>(null)
   const hdrInView = useInView(hdrRef, { once: true, margin: '-80px 0px' })
   const reduced = useReducedMotion() ?? false
@@ -228,8 +252,24 @@ export function ProductsSection() {
     setBlackoutNotice(getBlackoutInfo().notice)
   }, [])
 
+  const packages = dbContent
+    ? PACKAGES.map((pkg) => {
+        const content = dbContent[pkg.weightGrams]
+        return content
+          ? {
+              ...pkg,
+              priceInKurus: content.priceInKurus,
+              name: content.name || pkg.name,
+              variant: content.variantTitle || pkg.variant,
+              description: content.description || pkg.description,
+            }
+          : pkg
+      })
+    : PACKAGES
+
   return (
-    <section id="urunler" className="bg-background py-24 scroll-mt-24">
+    <section id="urunler" className="relative overflow-hidden bg-background py-24 scroll-mt-24">
+      <SectionBackground imageUrl={productsBgUrl} />
       <div className="container-page">
         {/* Header */}
         <div ref={hdrRef} className="mb-12 max-w-2xl">
@@ -277,7 +317,7 @@ export function ProductsSection() {
 
         {/* Product grid */}
         <div className="grid gap-6 pt-3 sm:grid-cols-2 lg:grid-cols-4">
-          {PACKAGES.map((pkg, i) => (
+          {packages.map((pkg, i) => (
             <ProductCard key={pkg.variantId} pkg={pkg} index={i} />
           ))}
         </div>

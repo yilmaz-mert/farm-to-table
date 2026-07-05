@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 import { motion, useReducedMotion } from 'framer-motion'
+import { cn } from '@/lib/utils'
 
 const ease: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
 
@@ -12,23 +13,23 @@ const LINE_TWO = ['Akşam', 'Kapınızda.']
 
 function WordReveal({
   word,
-  isAccent = false,
   delay,
   reduced,
+  hasBackground,
 }: {
   word: string
-  isAccent?: boolean
   delay: number
   reduced: boolean
+  hasBackground: boolean
 }) {
   return (
     // Clip wrapper prevents blurred/translated text peeking out
     <span className="inline-block overflow-hidden">
       <motion.span
-        className={`inline-block${isAccent ? ' text-primary' : ''}`}
-        initial={reduced ? false : { opacity: 0, y: 36, filter: 'blur(10px)' }}
-        animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-        transition={{ duration: 0.72, delay, ease }}
+        className={cn('inline-block', hasBackground && 'text-white')}
+        initial={reduced ? false : { opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay, ease }}
       >
         {word}
       </motion.span>
@@ -36,8 +37,16 @@ function WordReveal({
   )
 }
 
-export function HeroSection() {
+interface HeroSectionProps {
+  /** Admin-editable hero background (see /admin/settings). Video takes
+   *  priority over the still image when both are set. */
+  heroImageUrl?: string | null
+  heroVideoUrl?: string | null
+}
+
+export function HeroSection({ heroImageUrl, heroVideoUrl }: HeroSectionProps) {
   const reduced = useReducedMotion() ?? false
+  const hasBackground = Boolean(heroImageUrl || heroVideoUrl)
 
   const baseDelay = reduced ? 0 : 0.18
   const wordGap = reduced ? 0 : 0.1
@@ -46,30 +55,78 @@ export function HeroSection() {
   const d = (i: number) => baseDelay + i * wordGap
 
   return (
-    <section className="relative flex min-h-[calc(100svh-4rem)] flex-col justify-center bg-background py-24">
+    <section
+      className={cn(
+        'relative flex min-h-[calc(100svh-4rem)] flex-col justify-center overflow-hidden pt-8 pb-16 md:py-24',
+        !hasBackground && 'bg-background'
+      )}
+    >
+      {/* Background media + dark scrim — keeps white/gold text legible
+          regardless of the photo/video content underneath. */}
+      {hasBackground && (
+        <div className="absolute inset-0 -z-10" aria-hidden>
+          {heroVideoUrl ? (
+            <video
+              className="absolute inset-0 h-full w-full transform-gpu object-cover"
+              src={heroVideoUrl}
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="metadata"
+            />
+          ) : (
+            <div
+              className="absolute inset-0 origin-center transform-gpu bg-cover bg-center"
+              style={{ backgroundImage: `url(${heroImageUrl})` }}
+            />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-bark-950/90 via-bark-950/60 to-bark-950/35" />
+        </div>
+      )}
+
       <div className="container-page">
         {/* Season pill */}
         <motion.div
-          className="mb-8 inline-flex items-center gap-2.5 rounded-full border border-border-brand bg-cherry-wash px-4 py-1.5"
+          className={cn(
+            'mb-8 inline-flex items-center gap-2.5 rounded-full border px-4 py-1.5',
+            hasBackground
+              ? 'border-white/25 bg-white/10 backdrop-blur-sm'
+              : 'border-border-brand bg-cherry-wash'
+          )}
           initial={reduced ? false : { opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0, ease }}
         >
           <span className="h-2 w-2 rounded-full bg-cta" aria-hidden />
-          <span className="font-sans text-sm font-medium text-primary">
-            2025 Hasat Sezonu Açık — Stok Sınırlı
+          <span
+            className={cn(
+              'font-sans text-sm font-medium',
+              hasBackground ? 'text-white' : 'text-primary'
+            )}
+          >
+            2026 Hasat Sezonu Açık — Stok Sınırlı
           </span>
         </motion.div>
 
         {/* Main headline — staggered word reveals */}
         <h1
-          className="font-serif text-[clamp(3.2rem,10.5vw,8.5rem)] font-light italic leading-[0.88] tracking-[-0.01em] text-text"
+          className={cn(
+            'font-serif text-[clamp(3.2rem,10.5vw,8.5rem)] font-light italic leading-[0.88] tracking-[-0.01em]',
+            !hasBackground && 'text-text'
+          )}
           aria-label="Sabah Dalında, Akşam Kapınızda."
         >
           {/* Line 1 */}
           <span className="flex flex-wrap gap-x-[0.28em]">
             {LINE_ONE.map((word, i) => (
-              <WordReveal key={word} word={word} delay={d(i)} reduced={reduced} />
+              <WordReveal
+                key={word}
+                word={word}
+                delay={d(i)}
+                reduced={reduced}
+                hasBackground={hasBackground}
+              />
             ))}
           </span>
 
@@ -80,16 +137,22 @@ export function HeroSection() {
               return (
                 <span key={word} className="inline-block overflow-hidden">
                   <motion.span
-                    className={`inline-block${isLast ? ' relative text-primary' : ''}`}
-                    initial={reduced ? false : { opacity: 0, y: 36, filter: 'blur(10px)' }}
-                    animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                    transition={{ duration: 0.72, delay: d(LINE_ONE.length + i), ease }}
+                    className={cn(
+                      'inline-block',
+                      isLast && cn('relative', hasBackground ? 'text-cherry-300' : 'text-primary')
+                    )}
+                    initial={reduced ? false : { opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: d(LINE_ONE.length + i), ease }}
                   >
                     {word}
                     {/* Signature verdigris bar — draws left-to-right after word lands */}
                     {isLast && (
                       <motion.span
-                        className="absolute -bottom-1 left-0 h-[3px] w-full origin-left rounded-full bg-accent"
+                        className={cn(
+                          'absolute -bottom-1 left-0 h-[3px] w-full origin-left rounded-full',
+                          hasBackground ? 'bg-verdigris-400' : 'bg-accent'
+                        )}
                         initial={{ scaleX: 0 }}
                         animate={{ scaleX: 1 }}
                         transition={{
@@ -109,13 +172,16 @@ export function HeroSection() {
 
         {/* Sub-copy */}
         <motion.p
-          className="mt-10 max-w-lg font-sans text-lg leading-relaxed text-muted"
+          className={cn(
+            'mt-10 max-w-lg font-sans text-lg leading-relaxed',
+            hasBackground ? 'text-white/75' : 'text-muted'
+          )}
           initial={reduced ? false : { opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: reduced ? 0 : 0.82, ease }}
         >
-          Karadeniz yüksek irtifa bahçelerinden hasat edilen sertifikalı organik
-          kiraz ve vişne. Aracısız, soğuk zincirde, hasadın aynı günü.
+          Konya&apos;nın bereketli topraklarında özenle yetiştirilen sertifikalı
+          organik kiraz ve vişne. Aracısız, soğuk zincirde, hasadın aynı günü.
         </motion.p>
 
         {/* CTAs */}
@@ -126,15 +192,20 @@ export function HeroSection() {
           transition={{ duration: 0.6, delay: reduced ? 0 : 0.98, ease }}
         >
           <Link
-            href="/shop"
+            href="#urunler"
             className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 font-sans text-base font-semibold text-inverted shadow-sm transition-colors duration-150 hover:bg-primary-hover active:scale-[0.98]"
           >
             Ürünleri Keşfet
             <ArrowRight className="h-4 w-4" aria-hidden />
           </Link>
           <Link
-            href="/orchard"
-            className="inline-flex items-center gap-2 rounded-lg border border-border px-6 py-3 font-sans text-base font-medium text-text transition-colors duration-150 hover:bg-raised active:scale-[0.98]"
+            href="#bahce"
+            className={cn(
+              'inline-flex items-center gap-2 rounded-lg border px-6 py-3 font-sans text-base font-medium transition-colors duration-150 active:scale-[0.98]',
+              hasBackground
+                ? 'border-white/30 text-white hover:bg-white/10'
+                : 'border-border text-text hover:bg-raised'
+            )}
           >
             Bahçemizi Gör
           </Link>

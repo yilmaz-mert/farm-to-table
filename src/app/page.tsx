@@ -5,9 +5,15 @@ import { ShopFooter } from '@/components/shared/footer'
 import { ShippingCalculator } from '@/components/shared/ShippingCalculator'
 import { HeroSection } from '@/components/sections/HeroSection'
 import { StorySection } from '@/components/sections/StorySection'
-import { ProductsSection } from '@/components/sections/ProductsSection'
+import { ProductsSection, type ProductContent } from '@/components/sections/ProductsSection'
 import { TransparencySection } from '@/components/sections/TransparencySection'
-import { GallerySection } from '@/components/sections/GallerySection'
+import { GallerySection, type GalleryShotContent } from '@/components/sections/GallerySection'
+import { createPublicClient } from '@/lib/supabase/public'
+
+// Product prices are admin-editable (see /admin/settings) — refresh at most
+// once a minute rather than forcing this page fully dynamic (which a
+// cookie-bound Supabase read would otherwise do).
+export const revalidate = 60
 
 const features = [
   {
@@ -34,13 +40,50 @@ const features = [
  * → Gallery (social proof) → Editorial CTA (final push).
  * ScarcityBar lives inside ShopNavbar's sticky header.
  */
-export default function HomePage() {
+export default async function HomePage() {
+  const supabase = createPublicClient()
+  const [{ data: products }, { data: galleryRows }, { data: settings }] = await Promise.all([
+    supabase
+      .from('products')
+      .select('name, package_weight_kg, total_price, description, marketing_copy')
+      .eq('is_active', true),
+    supabase.from('gallery_shots').select('*').order('slot_index'),
+    supabase
+      .from('store_settings')
+      .select('hero_image_url, hero_video_url, products_bg_url, features_bg_url')
+      .eq('id', 1)
+      .maybeSingle(),
+  ])
+
+  const dbContent: Record<number, ProductContent> = Object.fromEntries(
+    (products ?? []).map((p) => [
+      Math.round(Number(p.package_weight_kg) * 1000),
+      {
+        priceInKurus: Math.round(Number(p.total_price) * 100),
+        name: p.name ?? '',
+        variantTitle: p.description ?? '',
+        description: p.marketing_copy ?? '',
+      },
+    ])
+  )
+
+  const gallery: GalleryShotContent[] = (galleryRows ?? []).map((g) => ({
+    kind: g.kind,
+    title: g.title,
+    harvestTime: g.harvest_time,
+    locationTag: g.location_tag,
+    imageUrl: g.image_url,
+  }))
+
   return (
     <>
       <ShopNavbar />
 
       <main>
-        <HeroSection />
+        <HeroSection
+          heroImageUrl={settings?.hero_image_url}
+          heroVideoUrl={settings?.hero_video_url}
+        />
 
         {/* ── Trust strip ─────────────────────────────────────── */}
         <section className="border-y border-border bg-raised" aria-label="Özelliklerimiz">
@@ -61,15 +104,15 @@ export default function HomePage() {
           </div>
         </section>
 
-        <ProductsSection />
+        <ProductsSection dbContent={dbContent} productsBgUrl={settings?.products_bg_url} />
 
         <ShippingCalculator />
 
-        <StorySection />
+        <StorySection featuresBgUrl={settings?.features_bg_url} />
 
-        <TransparencySection />
+        <TransparencySection featuresBgUrl={settings?.features_bg_url} />
 
-        <GallerySection />
+        <GallerySection shots={gallery} />
 
         {/* ── Editorial CTA ────────────────────────────────────── */}
         <section className="bg-background py-28 text-center">

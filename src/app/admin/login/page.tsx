@@ -1,15 +1,10 @@
 'use client'
 
-import { Suspense, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useState } from 'react'
 import { Loader2, Eye, EyeOff } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 function LoginForm() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const from = searchParams.get('from') ?? '/admin'
-
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -26,19 +21,26 @@ function LoginForm() {
     setError('')
     try {
       const supabase = createClient()
-      const { error: authError } = await supabase.auth.signInWithPassword({
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password,
       })
       if (authError) {
         setError('E-posta veya şifre hatalı.')
+        setLoading(false)
         return
       }
-      router.push(from)
-      router.refresh()
+      if (!data?.session) {
+        setError('Oturum başlatılamadı. Lütfen tekrar deneyin.')
+        setLoading(false)
+        return
+      }
+      // Force a full navigation so middleware and server components see the
+      // freshly-set session cookies — a soft router.push can render before
+      // the new cookies are attached to the next request.
+      window.location.href = '/admin'
     } catch {
       setError('Giriş yapılamadı. Lütfen tekrar deneyin.')
-    } finally {
       setLoading(false)
     }
   }
@@ -136,15 +138,7 @@ function LoginForm() {
 export default function AdminLoginPage() {
   return (
     <div className="dark flex min-h-dvh flex-col items-center justify-center bg-background px-5">
-      <Suspense
-        fallback={
-          <div className="flex h-dvh items-center justify-center">
-            <Loader2 className="h-6 w-6 animate-spin text-accent" aria-label="Yükleniyor" />
-          </div>
-        }
-      >
-        <LoginForm />
-      </Suspense>
+      <LoginForm />
     </div>
   )
 }

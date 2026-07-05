@@ -1,19 +1,35 @@
 import Link from 'next/link'
-import { Globe } from 'lucide-react'
+
+// lucide-react dropped brand icons — inline glyph matches the lucide stroke style
+function InstagramIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+      <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+    </svg>
+  )
+}
 
 const shopLinks = [
-  { label: 'Taze Kiraz', href: '/shop?category=cherry' },
-  { label: 'Organik Vişne', href: '/shop?category=sour-cherry' },
-  { label: 'Reçel & Konserve', href: '/shop?category=preserves' },
-  { label: 'Sezon Kutuları', href: '/shop?category=gift-boxes' },
+  { label: 'Taze Kiraz', href: '#urunler' },
+  { label: 'Organik Vişne', href: '#urunler' },
+  { label: 'Sezon Kutuları', href: '#urunler' },
 ]
 
 const infoLinks = [
-  { label: 'Hakkımızda', href: '/about' },
-  { label: 'Bahçemiz', href: '/orchard' },
-  { label: 'Teslimat & İade', href: '/shipping' },
-  { label: 'Sertifikalarımız', href: '/certifications' },
-  { label: 'Gizlilik Politikası', href: '/privacy' },
+  { label: 'Hikayemiz', href: '#hikaye' },
+  { label: 'Bahçemiz', href: '#bahce' },
+  { label: 'Ürünler', href: '#urunler' },
 ]
 
 export function ShopFooter() {
@@ -34,19 +50,21 @@ export function ShopFooter() {
               </span>
             </Link>
             <p className="max-w-xs font-sans text-sm leading-relaxed text-muted">
-              Yüksek irtifa bahçelerinden sertifikalı organik kiraz.
-              Doğadan sofraya, hiçbir aracı olmadan.
+              Konya&apos;nın bereketli topraklarından sertifikalı organik kiraz
+              ve vişne. Doğadan sofraya, hiçbir aracı olmadan.
             </p>
 
-            <a
-              href="https://dalindankapiya.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-6 inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border text-muted transition-colors hover:border-border-strong hover:text-text"
-              aria-label="Web sitesini ziyaret et"
-            >
-              <Globe className="h-4 w-4" aria-hidden />
-            </a>
+            <div className="mt-6 flex items-center gap-2">
+              <a
+                href="https://instagram.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border text-muted transition-colors hover:border-border-strong hover:text-text"
+                aria-label="Instagram'da takip edin"
+              >
+                <InstagramIcon className="h-4 w-4" />
+              </a>
+            </div>
           </div>
 
           {/* Shop links */}
@@ -56,7 +74,7 @@ export function ShopFooter() {
             </p>
             <ul className="flex flex-col gap-3">
               {shopLinks.map(({ label, href }) => (
-                <li key={href}>
+                <li key={label}>
                   <Link
                     href={href}
                     className="font-sans text-sm text-muted transition-colors hover:text-text"
@@ -75,7 +93,7 @@ export function ShopFooter() {
             </p>
             <ul className="flex flex-col gap-3">
               {infoLinks.map(({ label, href }) => (
-                <li key={href}>
+                <li key={label}>
                   <Link
                     href={href}
                     className="font-sans text-sm text-muted transition-colors hover:text-text"
