@@ -10,6 +10,20 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "10mb",
     },
   },
+  images: {
+    // Lets next/image optimize admin-uploaded photos served from the
+    // public store-media bucket (any Supabase project's subdomain).
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "*.supabase.co",
+        pathname: "/storage/v1/object/public/**",
+      },
+    ],
+    // Next only allows `quality` values listed here (default: [75]).
+    // GallerySection.tsx uses quality={80}, hence 80 must be included.
+    qualities: [25, 50, 75, 80, 85, 90, 100],
+  },
 };
 
 export default nextConfig;

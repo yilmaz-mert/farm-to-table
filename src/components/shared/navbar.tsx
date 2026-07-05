@@ -18,6 +18,14 @@ const navLinks = [
 
 export function ShopNavbar() {
   const [mobileOpen, setMobileOpen] = useState(false)
+  // Decided once, at the moment the menu opens — not tracked continuously
+  // while it's open, since flipping modes mid-open would be jarring.
+  // At the top of the page, pushing the page down under the drawer reads
+  // fine (there's nothing above to lose). Once scrolled, doing the same
+  // yanks the sticky header (and everything below it) down the viewport —
+  // so past scrollY 0 the drawer renders as a floating overlay instead,
+  // anchored to the sticky header, and never shifts page content.
+  const [pushDown, setPushDown] = useState(true)
   const items = useCartStore((s) => s.items)
   const totalItems = cartItemCount(items)
   const toggleCartDrawer = useUIStore((s) => s.toggleCartDrawer)
@@ -83,7 +91,11 @@ export function ShopNavbar() {
 
           <button
             className="flex h-9 w-9 items-center justify-center rounded-lg text-text transition-colors hover:bg-raised md:hidden"
-            onClick={() => setMobileOpen((v) => !v)}
+            onClick={() => {
+              const next = !mobileOpen
+              if (next) setPushDown(window.scrollY === 0)
+              setMobileOpen(next)
+            }}
             aria-expanded={mobileOpen}
             aria-label={mobileOpen ? 'Menüyü kapat' : 'Menüyü aç'}
           >
@@ -97,11 +109,19 @@ export function ShopNavbar() {
       </div>
       </div>
 
-      {/* Mobile navigation drawer */}
+      {/* Mobile navigation drawer — pushes content at scrollY 0, otherwise
+          floats as an overlay anchored to the sticky header (see pushDown). */}
       <div
         className={cn(
-          'overflow-hidden border-t border-border bg-background transition-all duration-200 md:hidden',
-          mobileOpen ? 'max-h-64 opacity-100' : 'max-h-0 opacity-0'
+          'border-t border-border bg-background transition-all duration-200 md:hidden',
+          pushDown
+            ? cn('overflow-hidden', mobileOpen ? 'max-h-64 opacity-100' : 'max-h-0 opacity-0')
+            : cn(
+                'absolute inset-x-0 top-full shadow-lg',
+                mobileOpen
+                  ? 'translate-y-0 opacity-100'
+                  : 'pointer-events-none -translate-y-2 opacity-0'
+              )
         )}
         aria-hidden={!mobileOpen}
       >

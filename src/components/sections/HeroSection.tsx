@@ -26,7 +26,9 @@ function WordReveal({
     // Clip wrapper prevents blurred/translated text peeking out
     <span className="inline-block overflow-hidden">
       <motion.span
-        className={cn('inline-block', hasBackground && 'text-white')}
+        // Explicit either way — never left to inherit from an ancestor
+        // (which resolves to the theme's near-black --fg in light mode).
+        className={cn('inline-block', hasBackground ? 'text-white' : 'text-text')}
         initial={reduced ? false : { opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay, ease }}
@@ -81,7 +83,13 @@ export function HeroSection({ heroImageUrl, heroVideoUrl }: HeroSectionProps) {
               style={{ backgroundImage: `url(${heroImageUrl})` }}
             />
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-bark-950/90 via-bark-950/60 to-bark-950/35" />
+          {/* No blanket tint over the photo. A left-anchored scrim behind
+              the copy only (fully clear before mid-frame) plus a faint
+              bottom anchor — the sunny sky/leaves on the right stay
+              untouched; legibility is reinforced by the drop-shadow on the
+              text itself, below. */}
+          <div className="absolute inset-0 bg-gradient-to-r from-[#1a0608]/85 via-[#1a0608]/55 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
         </div>
       )}
 
@@ -113,7 +121,12 @@ export function HeroSection({ heroImageUrl, heroVideoUrl }: HeroSectionProps) {
         <h1
           className={cn(
             'font-serif text-[clamp(3.2rem,10.5vw,8.5rem)] font-light italic leading-[0.88] tracking-[-0.01em]',
-            !hasBackground && 'text-text'
+            // Explicit base color either way, independent of site theme —
+            // a safety net so any text node here that forgets its own
+            // color class inherits this instead of falling through to
+            // the theme's --fg (near-black in light mode).
+            hasBackground ? 'text-white' : 'text-text',
+            hasBackground && 'drop-shadow-[0_2px_16px_rgba(0,0,0,0.5)]'
           )}
           aria-label="Sabah Dalında, Akşam Kapınızda."
         >
@@ -139,7 +152,17 @@ export function HeroSection({ heroImageUrl, heroVideoUrl }: HeroSectionProps) {
                   <motion.span
                     className={cn(
                       'inline-block',
-                      isLast && cn('relative', hasBackground ? 'text-cherry-300' : 'text-primary')
+                      // The bug: this used to be `isLast && cn(...)`, which
+                      // left the non-last word ("Akşam") with NO color
+                      // class at all whenever isLast was false — it fell
+                      // through to inherited body color (near-black in
+                      // light mode) instead of white over the photo. Every
+                      // word now gets an explicit base color; the accent
+                      // override for the last word is layered on after so
+                      // tailwind-merge lets it win.
+                      hasBackground ? 'text-white' : 'text-text',
+                      isLast && 'relative',
+                      isLast && (hasBackground ? 'text-cherry-300' : 'text-primary')
                     )}
                     initial={reduced ? false : { opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -174,7 +197,9 @@ export function HeroSection({ heroImageUrl, heroVideoUrl }: HeroSectionProps) {
         <motion.p
           className={cn(
             'mt-10 max-w-lg font-sans text-lg leading-relaxed',
-            hasBackground ? 'text-white/75' : 'text-muted'
+            hasBackground
+              ? 'text-white/75 drop-shadow-[0_2px_16px_rgba(0,0,0,0.5)]'
+              : 'text-muted'
           )}
           initial={reduced ? false : { opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}

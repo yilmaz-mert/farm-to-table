@@ -1,16 +1,20 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import Image from 'next/image'
 import { motion, AnimatePresence, useInView, useReducedMotion } from 'framer-motion'
 import { X, Camera, Package, Cherry } from 'lucide-react'
 
 const ease: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
 
-type ShotKind = 'harvest' | 'unboxing'
+type GalleryCategory = 'bahceden' | 'kutu_acilisi' | 'hasat_ani'
 
 interface Shot {
   id: string
-  kind: ShotKind
+  /** Chosen from a fixed admin dropdown (see /admin/settings) — icon and
+   *  label are both derived from this single value, so they can't drift
+   *  out of sync the way a freeform label + separate icon field could. */
+  category: string
   title: string
   locationTag: string
   time: string
@@ -36,7 +40,7 @@ const SLOT_ART = [
 const SHOTS: Shot[] = [
   {
     id: 'shot-0611-01',
-    kind: 'harvest',
+    category: 'bahceden',
     title: 'Günün ilk kasası',
     locationTag: 'Kuzey Yamaç, Parsel 3',
     time: 'Bu sabah 06:38',
@@ -45,7 +49,7 @@ const SHOTS: Shot[] = [
   },
   {
     id: 'shot-0611-02',
-    kind: 'harvest',
+    category: 'bahceden',
     title: 'Kalibrasyon bandı',
     locationTag: 'Paketleme Tesisi',
     time: 'Bu sabah 08:15',
@@ -54,7 +58,7 @@ const SHOTS: Shot[] = [
   },
   {
     id: 'shot-0611-03',
-    kind: 'unboxing',
+    category: 'kutu_acilisi',
     title: '“Kokusu odayı sardı”',
     locationTag: 'İstanbul',
     time: 'Dün 19:04',
@@ -63,7 +67,7 @@ const SHOTS: Shot[] = [
   },
   {
     id: 'shot-0611-04',
-    kind: 'harvest',
+    category: 'bahceden',
     title: 'Jel buz yerleşimi',
     locationTag: 'Paketleme Tesisi',
     time: 'Bu sabah 09:47',
@@ -72,7 +76,7 @@ const SHOTS: Shot[] = [
   },
   {
     id: 'shot-0611-05',
-    kind: 'unboxing',
+    category: 'kutu_acilisi',
     title: '“Çocuklar bayıldı”',
     locationTag: 'Ankara',
     time: 'Dün 21:30',
@@ -81,7 +85,7 @@ const SHOTS: Shot[] = [
   },
   {
     id: 'shot-0611-06',
-    kind: 'harvest',
+    category: 'bahceden',
     title: 'Vişne parseli',
     locationTag: 'Güney Yamaç, Parsel 7',
     time: 'Bu sabah 11:02',
@@ -90,15 +94,23 @@ const SHOTS: Shot[] = [
   },
 ]
 
-const KIND_META: Record<ShotKind, { label: string; Icon: typeof Camera }> = {
-  harvest: { label: 'Bahçeden', Icon: Cherry },
-  unboxing: { label: 'Kutu Açılışı', Icon: Package },
+const CATEGORY_META: Record<GalleryCategory, { label: string; Icon: typeof Camera }> = {
+  bahceden: { label: 'Bahçeden', Icon: Cherry },
+  kutu_acilisi: { label: 'Kutu Açılışı', Icon: Package },
+  hasat_ani: { label: 'Hasat Anı', Icon: Camera },
+}
+
+/** Storefront reads whatever string is in the DB — resolve defensively so
+ *  a stale/legacy value (e.g. from before this category was introduced)
+ *  falls back cleanly instead of crashing on an unrecognized key. */
+function resolveCategoryMeta(category: string): { label: string; Icon: typeof Camera } {
+  return CATEGORY_META[category as GalleryCategory] ?? CATEGORY_META.bahceden
 }
 
 function Lightbox({ shot, onClose }: { shot: Shot; onClose: () => void }) {
   const reduced = useReducedMotion() ?? false
   const closeRef = useRef<HTMLButtonElement>(null)
-  const { label, Icon } = KIND_META[shot.kind]
+  const { label, Icon } = resolveCategoryMeta(shot.category)
 
   useEffect(() => {
     closeRef.current?.focus()
@@ -138,14 +150,13 @@ function Lightbox({ shot, onClose }: { shot: Shot; onClose: () => void }) {
         {/* Visual */}
         <div className="relative aspect-square w-full" style={{ background: shot.art }}>
           {shot.imageUrl && (
-            // Admin-uploaded photo — plain <img> keeps this independent of
-            // next/image's remote-pattern config (storage bucket is public).
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <Image
               src={shot.imageUrl}
               alt={shot.title}
-              decoding="async"
-              className="absolute inset-0 h-full w-full object-cover"
+              fill
+              sizes="(max-width: 640px) 100vw, 512px"
+              quality={80}
+              className="object-cover"
             />
           )}
           <button
@@ -189,7 +200,7 @@ function GalleryCard({
   const ref = useRef<HTMLButtonElement>(null)
   const inView = useInView(ref, { once: true, margin: '-56px 0px' })
   const reduced = useReducedMotion() ?? false
-  const { label, Icon } = KIND_META[shot.kind]
+  const { label, Icon } = resolveCategoryMeta(shot.category)
 
   return (
     <motion.button
@@ -206,19 +217,21 @@ function GalleryCard({
       {/* Fixed aspect ratio guarantees zero layout shift */}
       <div className="relative aspect-square w-full" style={{ background: shot.art }}>
         {shot.imageUrl && (
-          // Admin-uploaded photo, likely full camera resolution — lazy +
-          // async decode keeps 6 of these mounting at once from blocking
-          // the main thread during scroll.
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          // next/image: lazy by default, generates a real responsive srcset
+          // and re-encodes to WebP via sharp — a raw multi-MB phone photo
+          // never ships to the browser at full size just to fill this
+          // small grid cell. `fill` inside the already aspect-locked
+          // parent keeps this a guaranteed zero-CLS layout.
+          <Image
             src={shot.imageUrl}
             alt={shot.title}
-            loading="lazy"
-            decoding="async"
-            className="absolute inset-0 h-full w-full object-cover"
+            fill
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 300px"
+            quality={80}
+            className="object-cover"
           />
         )}
-        {/* Kind chip */}
+        {/* Category chip */}
         <span className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-bark-900/45 px-2.5 py-1 font-sans text-[11px] font-medium text-white backdrop-blur-sm">
           <Icon className="h-3 w-3" aria-hidden />
           {label}
@@ -235,7 +248,7 @@ function GalleryCard({
 }
 
 export interface GalleryShotContent {
-  kind: ShotKind
+  category: string
   title: string
   harvestTime: string
   locationTag: string
@@ -258,7 +271,7 @@ export function GallerySection({ shots: dbShots }: GallerySectionProps) {
     dbShots && dbShots.length > 0
       ? dbShots.map((s, i) => ({
           id: SHOTS[i]?.id ?? `gallery-slot-${i + 1}`,
-          kind: s.kind,
+          category: s.category || SHOTS[i]?.category || 'bahceden',
           title: s.title || SHOTS[i]?.title || '',
           time: s.harvestTime || SHOTS[i]?.time || '',
           locationTag: s.locationTag || SHOTS[i]?.locationTag || '',

@@ -1,8 +1,9 @@
 'use client'
 
-import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { memo, useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Loader2, CheckCircle2, AlertTriangle, Flame, Image as ImageIcon, Upload } from 'lucide-react'
+import { Loader2, CheckCircle2, AlertTriangle, Flame, Image as ImageIcon, Upload, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { saveAdminSettings } from './actions'
 
@@ -20,11 +21,20 @@ interface ProductDraft {
   image_url: string | null
   description: string
   marketing_copy: string
+  highlight_badge: string
 }
+
+type GalleryCategory = 'bahceden' | 'kutu_acilisi' | 'hasat_ani'
+
+const GALLERY_CATEGORY_OPTIONS: { value: GalleryCategory; label: string }[] = [
+  { value: 'bahceden', label: 'Bahçeden' },
+  { value: 'kutu_acilisi', label: 'Kutu Açılışı' },
+  { value: 'hasat_ani', label: 'Hasat Anı' },
+]
 
 interface GalleryDraft {
   slot_index: number
-  kind: 'harvest' | 'unboxing'
+  category: GalleryCategory
   image_url: string | null
   title: string
   harvest_time: string
@@ -36,7 +46,7 @@ const GALLERY_SLOT_COUNT = 6
 function defaultGallerySlots(): GalleryDraft[] {
   return Array.from({ length: GALLERY_SLOT_COUNT }, (_, i) => ({
     slot_index: i + 1,
-    kind: 'harvest' as const,
+    category: 'bahceden' as const,
     image_url: null,
     title: '',
     harvest_time: '',
@@ -98,21 +108,42 @@ function ImageUploadRow({
   imageUrl,
   uploading,
   onFileSelected,
+  onRemove,
 }: {
   label: string
   imageUrl: string | null
   uploading: boolean
   onFileSelected: (file: File) => void
+  onRemove?: () => void
 }) {
   return (
     <div className="rounded-xl border border-border bg-raised p-4">
-      <p className="mb-3 font-sans text-sm font-semibold text-text">{label}</p>
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <p className="font-sans text-sm font-semibold text-text">{label}</p>
+        {imageUrl && onRemove && (
+          <button
+            type="button"
+            onClick={onRemove}
+            className="flex items-center gap-1 rounded-md px-2 py-1 font-sans text-xs font-medium text-red-400 transition-colors hover:bg-red-950/30"
+            aria-label={`${label} — görseli kaldır`}
+          >
+            <X className="h-3.5 w-3.5" aria-hidden />
+            Görseli Kaldır
+          </button>
+        )}
+      </div>
       <div className="flex items-center gap-3">
-        <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-background">
+        <div className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-background">
           {imageUrl ? (
-            // Admin-only thumbnail preview — plain <img> keeps this independent of next/image's remote-pattern config
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={imageUrl} alt={`${label} önizleme`} className="h-full w-full object-cover" />
+            // A fixed 64x64 next/image request — not the full original file
+            // (potentially several MB) just to paint a thumbnail this small.
+            <Image
+              src={imageUrl}
+              alt={`${label} önizleme`}
+              fill
+              sizes="64px"
+              className="object-cover"
+            />
           ) : (
             <ImageIcon className="h-5 w-5 text-subtle" aria-hidden />
           )}
@@ -147,16 +178,31 @@ function VideoUploadRow({
   videoUrl,
   uploading,
   onFileSelected,
+  onRemove,
 }: {
   label: string
   hint: string
   videoUrl: string | null
   uploading: boolean
   onFileSelected: (file: File) => void
+  onRemove?: () => void
 }) {
   return (
     <div className="rounded-xl border border-border bg-raised p-4">
-      <p className="mb-1 font-sans text-sm font-semibold text-text">{label}</p>
+      <div className="mb-1 flex items-center justify-between gap-2">
+        <p className="font-sans text-sm font-semibold text-text">{label}</p>
+        {videoUrl && onRemove && (
+          <button
+            type="button"
+            onClick={onRemove}
+            className="flex items-center gap-1 rounded-md px-2 py-1 font-sans text-xs font-medium text-red-400 transition-colors hover:bg-red-950/30"
+            aria-label={`${label} — videoyu kaldır`}
+          >
+            <X className="h-3.5 w-3.5" aria-hidden />
+            Videoyu Kaldır
+          </button>
+        )}
+      </div>
       <p className="mb-3 font-sans text-xs text-muted">{hint}</p>
       <div className="flex items-center gap-3">
         <div className="flex h-11 flex-1 items-center gap-2 rounded-lg border border-border bg-background px-3 font-sans text-xs text-muted">
@@ -193,6 +239,162 @@ function VideoUploadRow({
   )
 }
 
+/**
+ * Isolated + memoized on purpose: this is the heaviest subtree on the page
+ * (6 cards × image preview + 3 text inputs each). Without React.memo here,
+ * editing any unrelated field elsewhere on the settings page (a product
+ * price, the hero toggle, harvest quota) re-renders all 6 gallery cards
+ * along with everything else, since all state used to live in one
+ * top-level component. As long as the props below stay referentially
+ * stable (see the useCallback wrapping in AdminSettingsPage), React skips
+ * this whole subtree on renders that don't actually touch gallery state.
+ */
+const GalleryManager = memo(function GalleryManager({
+  gallerySlots,
+  uploadingSlot,
+  onFileSelected,
+  onUpdateSlot,
+  onRemoveImage,
+}: {
+  gallerySlots: GalleryDraft[]
+  uploadingSlot: number | null
+  onFileSelected: (slotIndex: number, file: File) => void
+  onUpdateSlot: (slotIndex: number, patch: Partial<GalleryDraft>) => void
+  onRemoveImage: (slotIndex: number) => void
+}) {
+  return (
+    <SectionCard emoji="🍒" title="Bugün Bahçeden Kareler">
+      <div className="grid gap-4 sm:grid-cols-2">
+        {gallerySlots.map((slot) => (
+          <div
+            key={slot.slot_index}
+            className="space-y-3 rounded-xl border border-border bg-raised p-4"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <p className="font-sans text-[11px] font-medium uppercase tracking-[0.14em] text-subtle">
+                Kare {slot.slot_index}
+              </p>
+              {slot.image_url && (
+                <button
+                  type="button"
+                  onClick={() => onRemoveImage(slot.slot_index)}
+                  className="flex items-center gap-1 rounded-md px-2 py-1 font-sans text-xs font-medium text-red-400 transition-colors hover:bg-red-950/30"
+                  aria-label={`Kare ${slot.slot_index} — görseli kaldır`}
+                >
+                  <X className="h-3.5 w-3.5" aria-hidden />
+                  Görseli Kaldır
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-background">
+                {slot.image_url ? (
+                  // A fixed 64x64 next/image request — not the full original
+                  // camera-resolution upload just to paint a thumbnail.
+                  <Image
+                    src={slot.image_url}
+                    alt={`Kare ${slot.slot_index} önizleme`}
+                    fill
+                    sizes="64px"
+                    className="object-cover"
+                  />
+                ) : (
+                  <ImageIcon className="h-5 w-5 text-subtle" aria-hidden />
+                )}
+              </div>
+              <label className="flex h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-border bg-background font-sans text-sm font-medium text-text transition-colors hover:bg-raised active:scale-[0.99]">
+                {uploadingSlot === slot.slot_index ? (
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                ) : (
+                  <Upload className="h-4 w-4" aria-hidden />
+                )}
+                {uploadingSlot === slot.slot_index ? 'Yükleniyor…' : 'Görsel Seç'}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  disabled={uploadingSlot === slot.slot_index}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    e.target.value = ''
+                    if (file) onFileSelected(slot.slot_index, file)
+                  }}
+                />
+              </label>
+            </div>
+
+            <label className="block">
+              <span className="mb-1 block font-sans text-[11px] font-medium text-subtle">
+                Başlık / Müşteri Açılış Notu
+              </span>
+              <input
+                type="text"
+                value={slot.title}
+                onChange={(e) => onUpdateSlot(slot.slot_index, { title: e.target.value })}
+                placeholder="ör. Günün ilk kasası"
+                className="w-full rounded-lg border border-border bg-background px-3 py-2.5 font-sans text-sm text-text outline-none focus:border-primary"
+              />
+            </label>
+
+            <label className="block">
+              <span className="mb-1 block font-sans text-[11px] font-medium text-subtle">
+                Kategori
+              </span>
+              <select
+                value={slot.category}
+                onChange={(e) =>
+                  onUpdateSlot(slot.slot_index, {
+                    category: e.target.value as GalleryCategory,
+                  })
+                }
+                className="w-full rounded-lg border border-border bg-background px-3 py-2.5 font-sans text-sm text-text outline-none focus:border-primary"
+              >
+                {GALLERY_CATEGORY_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <div className="grid grid-cols-2 gap-3">
+              <label className="block">
+                <span className="mb-1 block font-sans text-[11px] font-medium text-subtle">
+                  Hasat Saati
+                </span>
+                <input
+                  type="text"
+                  value={slot.harvest_time}
+                  onChange={(e) =>
+                    onUpdateSlot(slot.slot_index, { harvest_time: e.target.value })
+                  }
+                  placeholder="ör. Bu sabah 06:42"
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 font-mono text-sm text-text outline-none focus:border-primary"
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block font-sans text-[11px] font-medium text-subtle">
+                  Konum / Parsel Etiketi
+                </span>
+                <input
+                  type="text"
+                  value={slot.location_tag}
+                  onChange={(e) =>
+                    onUpdateSlot(slot.slot_index, { location_tag: e.target.value })
+                  }
+                  placeholder="ör. Parsel 3"
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 font-sans text-sm text-text outline-none focus:border-primary"
+                />
+              </label>
+            </div>
+          </div>
+        ))}
+      </div>
+    </SectionCard>
+  )
+})
+
 export default function AdminSettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -218,6 +420,17 @@ export default function AdminSettingsPage() {
   const [uploadingProductId, setUploadingProductId] = useState<string | null>(null)
   const [uploadingSlot, setUploadingSlot] = useState<number | null>(null)
 
+  // URLs cleared via "Görseli Kaldır" this session — actually deleted from
+  // Supabase Storage only on a successful Save (see handleSaveAll), not the
+  // instant the button is clicked. Deleting immediately would risk a
+  // dangling DB reference to an already-gone file if the admin navigates
+  // away without saving; deferring keeps storage and DB consistent together.
+  const [pendingDeletions, setPendingDeletions] = useState<string[]>([])
+  const queueDeletion = useCallback((url: string | null) => {
+    if (!url) return
+    setPendingDeletions((urls) => [...urls, url])
+  }, [])
+
   const todayStr = new Date().toISOString().slice(0, 10)
 
   const fetchAll = useCallback(async () => {
@@ -229,7 +442,7 @@ export default function AdminSettingsPage() {
         supabase
           .from('products')
           .select(
-            'id, name, package_weight_kg, total_price, price_per_kg, image_url, description, marketing_copy'
+            'id, name, package_weight_kg, total_price, price_per_kg, image_url, description, marketing_copy, highlight_badge'
           )
           .eq('is_active', true)
           .order('package_weight_kg'),
@@ -258,6 +471,7 @@ export default function AdminSettingsPage() {
           image_url: p.image_url,
           description: p.description ?? '',
           marketing_copy: p.marketing_copy ?? '',
+          highlight_badge: p.highlight_badge ?? '',
         }))
       )
 
@@ -286,7 +500,7 @@ export default function AdminSettingsPage() {
           return row
             ? {
                 slot_index: row.slot_index,
-                kind: row.kind,
+                category: row.category,
                 image_url: row.image_url,
                 title: row.title,
                 harvest_time: row.harvest_time,
@@ -303,7 +517,14 @@ export default function AdminSettingsPage() {
     }
   }, [todayStr])
 
+  // Explicit mount guard rather than relying solely on `fetchAll`'s
+  // useCallback identity staying stable across renders — fetches strictly
+  // once on mount; a future edit to fetchAll's dependencies can't turn this
+  // into a re-fetch loop.
+  const hasFetchedRef = useRef(false)
   useEffect(() => {
+    if (hasFetchedRef.current) return
+    hasFetchedRef.current = true
     fetchAll()
   }, [fetchAll])
 
@@ -313,7 +534,10 @@ export default function AdminSettingsPage() {
     return () => clearTimeout(id)
   }, [savedAt])
 
-  async function uploadToStoreMedia(file: File, path: string): Promise<string | null> {
+  // useCallback with empty/stable deps throughout this block — every handler
+  // that reaches a memoized child (GalleryManager below) needs a reference
+  // that doesn't change on every render, or the memo boundary is pointless.
+  const uploadToStoreMedia = useCallback(async (file: File, path: string): Promise<string | null> => {
     // Uploads go straight from the browser to Supabase Storage — NOT
     // through a Server Action. Server Actions have a body size limit (Next
     // enforced 1MB by default); routing raw file bytes through one caused
@@ -333,46 +557,46 @@ export default function AdminSettingsPage() {
       data: { publicUrl },
     } = supabase.storage.from('store-media').getPublicUrl(path)
     return publicUrl
-  }
+  }, [])
 
-  async function handleHeroFile(file: File) {
+  const handleHeroFile = useCallback(async (file: File) => {
     setUploadingHero(true)
     const url = await uploadToStoreMedia(file, buildMediaPath('hero/background', file))
     if (url) setHeroImageUrl(url)
     setUploadingHero(false)
-  }
+  }, [uploadToStoreMedia])
 
-  async function handleHeroVideoFile(file: File) {
+  const handleHeroVideoFile = useCallback(async (file: File) => {
     setUploadingHeroVideo(true)
     const url = await uploadToStoreMedia(file, buildMediaPath('hero/video', file))
     if (url) setHeroVideoUrl(url)
     setUploadingHeroVideo(false)
-  }
+  }, [uploadToStoreMedia])
 
-  async function handleProductsBgFile(file: File) {
+  const handleProductsBgFile = useCallback(async (file: File) => {
     setUploadingProductsBg(true)
     const url = await uploadToStoreMedia(file, buildMediaPath('sections/products-bg', file))
     if (url) setProductsBgUrl(url)
     setUploadingProductsBg(false)
-  }
+  }, [uploadToStoreMedia])
 
-  async function handleFeaturesBgFile(file: File) {
+  const handleFeaturesBgFile = useCallback(async (file: File) => {
     setUploadingFeaturesBg(true)
     const url = await uploadToStoreMedia(file, buildMediaPath('sections/features-bg', file))
     if (url) setFeaturesBgUrl(url)
     setUploadingFeaturesBg(false)
-  }
+  }, [uploadToStoreMedia])
 
-  async function handleProductFile(productId: string, file: File) {
+  const handleProductFile = useCallback(async (productId: string, file: File) => {
     setUploadingProductId(productId)
     const url = await uploadToStoreMedia(file, buildMediaPath(`products/${productId}`, file))
     if (url) {
       setProducts((ps) => ps.map((p) => (p.id === productId ? { ...p, image_url: url } : p)))
     }
     setUploadingProductId(null)
-  }
+  }, [uploadToStoreMedia])
 
-  async function handleGalleryFile(slotIndex: number, file: File) {
+  const handleGalleryFile = useCallback(async (slotIndex: number, file: File) => {
     setUploadingSlot(slotIndex)
     const url = await uploadToStoreMedia(file, buildMediaPath(`gallery/slot-${slotIndex}`, file))
     if (url) {
@@ -381,13 +605,54 @@ export default function AdminSettingsPage() {
       )
     }
     setUploadingSlot(null)
-  }
+  }, [uploadToStoreMedia])
 
-  function updateGallerySlot(slotIndex: number, patch: Partial<GalleryDraft>) {
+  const updateGallerySlot = useCallback((slotIndex: number, patch: Partial<GalleryDraft>) => {
     setGallerySlots((gs) =>
       gs.map((g) => (g.slot_index === slotIndex ? { ...g, ...patch } : g))
     )
-  }
+  }, [])
+
+  const handleRemoveHeroImage = useCallback(() => {
+    queueDeletion(heroImageUrl)
+    setHeroImageUrl(null)
+  }, [heroImageUrl, queueDeletion])
+
+  const handleRemoveHeroVideo = useCallback(() => {
+    queueDeletion(heroVideoUrl)
+    setHeroVideoUrl(null)
+  }, [heroVideoUrl, queueDeletion])
+
+  const handleRemoveProductsBg = useCallback(() => {
+    queueDeletion(productsBgUrl)
+    setProductsBgUrl(null)
+  }, [productsBgUrl, queueDeletion])
+
+  const handleRemoveFeaturesBg = useCallback(() => {
+    queueDeletion(featuresBgUrl)
+    setFeaturesBgUrl(null)
+  }, [featuresBgUrl, queueDeletion])
+
+  const handleRemoveProductImage = useCallback((productId: string) => {
+    setProducts((ps) => {
+      const p = ps.find((x) => x.id === productId)
+      if (p?.image_url) queueDeletion(p.image_url)
+      return ps.map((x) => (x.id === productId ? { ...x, image_url: null } : x))
+    })
+  }, [queueDeletion])
+
+  // Reads the current slot via the functional updater (not a `gallerySlots`
+  // dependency) so this handler's identity stays stable across every
+  // unrelated re-render — required for GalleryManager's React.memo to
+  // actually skip re-rendering all 6 cards on renders that don't touch
+  // gallery state (see the comment on GalleryManager above).
+  const handleRemoveGalleryImage = useCallback((slotIndex: number) => {
+    setGallerySlots((gs) => {
+      const slot = gs.find((g) => g.slot_index === slotIndex)
+      if (slot?.image_url) queueDeletion(slot.image_url)
+      return gs.map((g) => (g.slot_index === slotIndex ? { ...g, image_url: null } : g))
+    })
+  }, [queueDeletion])
 
   async function handleSaveAll() {
     setSaving(true)
@@ -421,6 +686,7 @@ export default function AdminSettingsPage() {
           image_url: p.image_url,
           description: p.description,
           marketing_copy: p.marketing_copy,
+          highlight_badge: p.highlight_badge.trim() || null,
         })),
         harvestDate: todayStr,
         totalBoxQuota: total,
@@ -432,12 +698,13 @@ export default function AdminSettingsPage() {
         featuresBgUrl,
         gallerySlots: gallerySlots.map((g) => ({
           slot_index: g.slot_index,
-          kind: g.kind,
+          category: g.category,
           image_url: g.image_url,
           title: g.title,
           harvest_time: g.harvest_time,
           location_tag: g.location_tag,
         })),
+        mediaUrlsToDelete: pendingDeletions,
       })
 
       if (!result.success) {
@@ -446,6 +713,7 @@ export default function AdminSettingsPage() {
 
       setDailyBoxLimit(total)
       setBoxesRemaining(remaining)
+      setPendingDeletions([])
       setSavedAt(Date.now())
     } catch (err) {
       console.error('SUPABASE SAVE ERROR:', err)
@@ -564,6 +832,23 @@ export default function AdminSettingsPage() {
                       className="w-full resize-none rounded-lg border border-border bg-background px-3 py-3 font-sans text-sm text-text outline-none focus:border-primary"
                     />
                   </label>
+                  <label className="block">
+                    <span className="mb-1 block font-sans text-[11px] font-medium text-subtle">
+                      Ürün Rozeti
+                    </span>
+                    <input
+                      type="text"
+                      value={p.highlight_badge}
+                      onChange={(e) => {
+                        const v = e.target.value
+                        setProducts((ps) =>
+                          ps.map((x, xi) => (xi === i ? { ...x, highlight_badge: v } : x))
+                        )
+                      }}
+                      placeholder="ör. En Popüler — boş bırakırsan rozet gösterilmez"
+                      className="w-full rounded-lg border border-border bg-background px-3 py-3 font-sans text-sm text-text outline-none focus:border-primary"
+                    />
+                  </label>
                 </div>
               </div>
             ))}
@@ -635,6 +920,7 @@ export default function AdminSettingsPage() {
               imageUrl={heroImageUrl}
               uploading={uploadingHero}
               onFileSelected={handleHeroFile}
+              onRemove={handleRemoveHeroImage}
             />
             <VideoUploadRow
               label="Hero Arkaplan Videosu"
@@ -642,18 +928,21 @@ export default function AdminSettingsPage() {
               videoUrl={heroVideoUrl}
               uploading={uploadingHeroVideo}
               onFileSelected={handleHeroVideoFile}
+              onRemove={handleRemoveHeroVideo}
             />
             <ImageUploadRow
               label="Ürünler Bölümü Arkaplanı"
               imageUrl={productsBgUrl}
               uploading={uploadingProductsBg}
               onFileSelected={handleProductsBgFile}
+              onRemove={handleRemoveProductsBg}
             />
             <ImageUploadRow
               label="Hikaye & Şeffaflık Arkaplanı"
               imageUrl={featuresBgUrl}
               uploading={uploadingFeaturesBg}
               onFileSelected={handleFeaturesBgFile}
+              onRemove={handleRemoveFeaturesBg}
             />
             {products.map((p) => (
               <ImageUploadRow
@@ -662,106 +951,19 @@ export default function AdminSettingsPage() {
                 imageUrl={p.image_url}
                 uploading={uploadingProductId === p.id}
                 onFileSelected={(file) => handleProductFile(p.id, file)}
+                onRemove={() => handleRemoveProductImage(p.id)}
               />
             ))}
           </div>
         </SectionCard>
 
-        {/* Bugün Bahçeden Kareler — 6-slot gallery manager */}
-        <SectionCard emoji="🍒" title="Bugün Bahçeden Kareler">
-          <div className="grid gap-4 sm:grid-cols-2">
-            {gallerySlots.map((slot) => (
-              <div
-                key={slot.slot_index}
-                className="space-y-3 rounded-xl border border-border bg-raised p-4"
-              >
-                <p className="font-sans text-[11px] font-medium uppercase tracking-[0.14em] text-subtle">
-                  Kare {slot.slot_index}
-                </p>
-
-                <div className="flex items-center gap-3">
-                  <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-background">
-                    {slot.image_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={slot.image_url}
-                        alt={`Kare ${slot.slot_index} önizleme`}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <ImageIcon className="h-5 w-5 text-subtle" aria-hidden />
-                    )}
-                  </div>
-                  <label className="flex h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-border bg-background font-sans text-sm font-medium text-text transition-colors hover:bg-raised active:scale-[0.99]">
-                    {uploadingSlot === slot.slot_index ? (
-                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                    ) : (
-                      <Upload className="h-4 w-4" aria-hidden />
-                    )}
-                    {uploadingSlot === slot.slot_index ? 'Yükleniyor…' : 'Görsel Seç'}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      disabled={uploadingSlot === slot.slot_index}
-                      onChange={(e) => {
-                        const file = e.target.files?.[0]
-                        e.target.value = ''
-                        if (file) handleGalleryFile(slot.slot_index, file)
-                      }}
-                    />
-                  </label>
-                </div>
-
-                <label className="block">
-                  <span className="mb-1 block font-sans text-[11px] font-medium text-subtle">
-                    Başlık / Müşteri Açılış Notu
-                  </span>
-                  <input
-                    type="text"
-                    value={slot.title}
-                    onChange={(e) =>
-                      updateGallerySlot(slot.slot_index, { title: e.target.value })
-                    }
-                    placeholder="ör. Günün ilk kasası"
-                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 font-sans text-sm text-text outline-none focus:border-primary"
-                  />
-                </label>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <label className="block">
-                    <span className="mb-1 block font-sans text-[11px] font-medium text-subtle">
-                      Hasat Saati
-                    </span>
-                    <input
-                      type="text"
-                      value={slot.harvest_time}
-                      onChange={(e) =>
-                        updateGallerySlot(slot.slot_index, { harvest_time: e.target.value })
-                      }
-                      placeholder="ör. Bu sabah 06:42"
-                      className="w-full rounded-lg border border-border bg-background px-3 py-2.5 font-mono text-sm text-text outline-none focus:border-primary"
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="mb-1 block font-sans text-[11px] font-medium text-subtle">
-                      Konum / Parsel Etiketi
-                    </span>
-                    <input
-                      type="text"
-                      value={slot.location_tag}
-                      onChange={(e) =>
-                        updateGallerySlot(slot.slot_index, { location_tag: e.target.value })
-                      }
-                      placeholder="ör. Parsel 3"
-                      className="w-full rounded-lg border border-border bg-background px-3 py-2.5 font-sans text-sm text-text outline-none focus:border-primary"
-                    />
-                  </label>
-                </div>
-              </div>
-            ))}
-          </div>
-        </SectionCard>
+        <GalleryManager
+          gallerySlots={gallerySlots}
+          uploadingSlot={uploadingSlot}
+          onFileSelected={handleGalleryFile}
+          onUpdateSlot={updateGallerySlot}
+          onRemoveImage={handleRemoveGalleryImage}
+        />
 
       </div>
 

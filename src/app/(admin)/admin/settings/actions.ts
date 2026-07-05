@@ -15,11 +15,12 @@ interface ProductUpdate {
   image_url: string | null
   description: string
   marketing_copy: string
+  highlight_badge: string | null
 }
 
 interface GalleryUpdate {
   slot_index: number
-  kind: 'harvest' | 'unboxing'
+  category: 'bahceden' | 'kutu_acilisi' | 'hasat_ani'
   image_url: string | null
   title: string
   harvest_time: string
@@ -37,6 +38,23 @@ interface SaveSettingsPayload {
   productsBgUrl: string | null
   featuresBgUrl: string | null
   gallerySlots: GalleryUpdate[]
+  /** Full public URLs cleared via "Görseli Kaldır" this session — deleted
+   *  from the store-media bucket only after every DB write below succeeds. */
+  mediaUrlsToDelete: string[]
+}
+
+/** Public storage URLs look like
+ *  `https://<project>.supabase.co/storage/v1/object/public/store-media/<path>`.
+ *  Deletion needs the bucket-relative <path>, not the full URL. */
+function extractStoragePath(publicUrl: string): string | null {
+  const marker = '/store-media/'
+  const idx = publicUrl.indexOf(marker)
+  if (idx === -1) return null
+  try {
+    return decodeURIComponent(publicUrl.slice(idx + marker.length))
+  } catch {
+    return null
+  }
 }
 
 /**
@@ -78,6 +96,7 @@ export async function saveAdminSettings(payload: SaveSettingsPayload): Promise<S
           image_url: p.image_url,
           description: p.description,
           marketing_copy: p.marketing_copy,
+          highlight_badge: p.highlight_badge,
           updated_at: new Date().toISOString(),
         },
         { onConflict: 'id' }
@@ -142,7 +161,7 @@ export async function saveAdminSettings(payload: SaveSettingsPayload): Promise<S
     .upsert(
       payload.gallerySlots.map((g) => ({
         slot_index: g.slot_index,
-        kind: g.kind,
+        category: g.category,
         image_url: g.image_url,
         title: g.title,
         harvest_time: g.harvest_time,
@@ -160,6 +179,26 @@ export async function saveAdminSettings(payload: SaveSettingsPayload): Promise<S
   if (!galleryData || galleryData.length === 0) {
     console.error('SUPABASE SAVE ERROR (gallery_shots): 0 rows returned from upsert')
     return { success: false, error: 'Galeri kareleri kaydedilemedi.' }
+  }
+
+  // Only now — every DB write above succeeded — actually delete the old
+  // files from Storage. Doing this before the DB writes succeed risks a
+  // dangling DB reference to an already-deleted file if something above
+  // fails; doing it after is non-fatal to the save either way, since the
+  // important state (the DB) is already correct.
+  if (payload.mediaUrlsToDelete.length > 0) {
+    const paths = payload.mediaUrlsToDelete
+      .map(extractStoragePath)
+      .filter((p): p is string => p !== null)
+
+    if (paths.length > 0) {
+      const { error: removeError } = await supabase.storage.from('store-media').remove(paths)
+      if (removeError) {
+        console.error('SUPABASE SAVE ERROR (storage cleanup):', removeError)
+        // Non-fatal — a stray orphaned file is far less harmful than
+        // reporting the whole save as failed when the DB state is correct.
+      }
+    }
   }
 
   try {

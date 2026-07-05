@@ -230,6 +230,10 @@ export interface ProductContent {
   variantTitle: string
   /** Marketing sentence shown below the heading */
   description: string
+  /** Ribbon text (e.g. "En Popüler") — null/empty means no ribbon. No
+   *  fallback to the hardcoded highlight: this is how an admin actually
+   *  hides a ribbon that used to be there. */
+  highlightBadge: string | null
 }
 
 interface ProductsSectionProps {
@@ -262,6 +266,9 @@ export function ProductsSection({ dbContent, productsBgUrl }: ProductsSectionPro
               name: content.name || pkg.name,
               variant: content.variantTitle || pkg.variant,
               description: content.description || pkg.description,
+              // No `||` fallback — an admin clearing this field to hide a
+              // ribbon must actually hide it, not resurrect the hardcoded one.
+              highlight: content.highlightBadge,
             }
           : pkg
       })

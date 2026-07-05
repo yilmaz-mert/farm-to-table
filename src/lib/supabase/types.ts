@@ -33,6 +33,7 @@ export type Database = {
           name: string
           description: string | null
           marketing_copy: string | null
+          highlight_badge: string | null
           price_per_kg: number
           total_price: number
           package_weight_kg: number
@@ -46,6 +47,7 @@ export type Database = {
           name: string
           description?: string | null
           marketing_copy?: string | null
+          highlight_badge?: string | null
           price_per_kg: number
           total_price: number
           package_weight_kg: number
@@ -59,6 +61,7 @@ export type Database = {
           name?: string
           description?: string | null
           marketing_copy?: string | null
+          highlight_badge?: string | null
           price_per_kg?: number
           total_price?: number
           package_weight_kg?: number
@@ -202,7 +205,7 @@ export type Database = {
         Row: {
           id: string
           slot_index: number
-          kind: 'harvest' | 'unboxing'
+          category: 'bahceden' | 'kutu_acilisi' | 'hasat_ani'
           image_url: string | null
           title: string
           harvest_time: string
@@ -212,7 +215,7 @@ export type Database = {
         Insert: {
           id?: string
           slot_index: number
-          kind?: 'harvest' | 'unboxing'
+          category?: 'bahceden' | 'kutu_acilisi' | 'hasat_ani'
           image_url?: string | null
           title?: string
           harvest_time?: string
@@ -222,7 +225,7 @@ export type Database = {
         Update: {
           id?: string
           slot_index?: number
-          kind?: 'harvest' | 'unboxing'
+          category?: 'bahceden' | 'kutu_acilisi' | 'hasat_ani'
           image_url?: string | null
           title?: string
           harvest_time?: string

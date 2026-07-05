@@ -45,7 +45,7 @@ export default async function HomePage() {
   const [{ data: products }, { data: galleryRows }, { data: settings }] = await Promise.all([
     supabase
       .from('products')
-      .select('name, package_weight_kg, total_price, description, marketing_copy')
+      .select('name, package_weight_kg, total_price, description, marketing_copy, highlight_badge')
       .eq('is_active', true),
     supabase.from('gallery_shots').select('*').order('slot_index'),
     supabase
@@ -63,12 +63,13 @@ export default async function HomePage() {
         name: p.name ?? '',
         variantTitle: p.description ?? '',
         description: p.marketing_copy ?? '',
+        highlightBadge: p.highlight_badge,
       },
     ])
   )
 
   const gallery: GalleryShotContent[] = (galleryRows ?? []).map((g) => ({
-    kind: g.kind,
+    category: g.category,
     title: g.title,
     harvestTime: g.harvest_time,
     locationTag: g.location_tag,
