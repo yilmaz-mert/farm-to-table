@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { ShoppingBag, Menu, X, Sun, Moon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTheme } from 'next-themes'
@@ -16,7 +17,50 @@ const navLinks = [
   { label: 'İletişim', href: '#iletisim' },
 ]
 
+function BrandMark() {
+  return (
+    <Link href="/" className="flex flex-col leading-none group">
+      <span className="font-serif text-xl font-semibold italic text-primary transition-colors group-hover:text-primary-hover">
+        Dalından
+      </span>
+      <span className="text-[10px] font-mono font-medium uppercase tracking-[0.2em] text-accent transition-colors group-hover:text-accent-hover">
+        Kapıya
+      </span>
+    </Link>
+  )
+}
+
+function ThemeToggle({
+  mounted,
+  resolvedTheme,
+  setTheme,
+}: {
+  mounted: boolean
+  resolvedTheme: string | undefined
+  setTheme: (t: string) => void
+}) {
+  return (
+    <button
+      onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+      className="flex h-9 w-9 items-center justify-center rounded-lg text-text transition-colors hover:bg-raised"
+      aria-label={resolvedTheme === 'dark' ? 'Aydınlık moda geç' : 'Karanlık moda geç'}
+    >
+      {mounted && resolvedTheme === 'dark' ? (
+        <Sun className="h-5 w-5" aria-hidden />
+      ) : (
+        <Moon className="h-5 w-5" aria-hidden />
+      )}
+    </button>
+  )
+}
+
 export function ShopNavbar() {
+  const pathname = usePathname()
+  // Checkout is a conversion flow, not a browsing page — the nav links are
+  // homepage-section anchors anyway (#urunler etc.), so they don't even
+  // resolve correctly from here. Same treatment for /checkout/success.
+  const isCheckout = pathname?.startsWith('/checkout') ?? false
+
   const [mobileOpen, setMobileOpen] = useState(false)
   // Decided once, at the moment the menu opens — not tracked continuously
   // while it's open, since flipping modes mid-open would be jarring.
@@ -34,20 +78,29 @@ export function ShopNavbar() {
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
 
+  if (isCheckout) {
+    // Distraction-free: brand mark + theme toggle only. ScarcityBar stays —
+    // the reservation countdown/quota is conversion-supportive here, not a
+    // navigational temptation to leave the page like the nav links/cart are.
+    return (
+      <header className="sticky top-0 z-50 bg-background/90 backdrop-blur-md supports-[backdrop-filter]:bg-background/75">
+        <ScarcityBar />
+        <div className="border-b border-border">
+          <div className="container-page flex h-16 items-center justify-between">
+            <BrandMark />
+            <ThemeToggle mounted={mounted} resolvedTheme={resolvedTheme} setTheme={setTheme} />
+          </div>
+        </div>
+      </header>
+    )
+  }
+
   return (
     <header className="sticky top-0 z-50 bg-background/90 backdrop-blur-md supports-[backdrop-filter]:bg-background/75">
       <ScarcityBar />
       <div className="border-b border-border">
       <div className="container-page flex h-16 items-center justify-between">
-        {/* Brand mark */}
-        <Link href="/" className="flex flex-col leading-none group">
-          <span className="font-serif text-xl font-semibold italic text-primary transition-colors group-hover:text-primary-hover">
-            Dalından
-          </span>
-          <span className="text-[10px] font-mono font-medium uppercase tracking-[0.2em] text-accent transition-colors group-hover:text-accent-hover">
-            Kapıya
-          </span>
-        </Link>
+        <BrandMark />
 
         {/* Desktop navigation */}
         <nav className="hidden items-center gap-8 md:flex" aria-label="Ana menü">
@@ -64,17 +117,7 @@ export function ShopNavbar() {
 
         {/* Action bar */}
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-text transition-colors hover:bg-raised"
-            aria-label={resolvedTheme === 'dark' ? 'Aydınlık moda geç' : 'Karanlık moda geç'}
-          >
-            {mounted && resolvedTheme === 'dark' ? (
-              <Sun className="h-5 w-5" aria-hidden />
-            ) : (
-              <Moon className="h-5 w-5" aria-hidden />
-            )}
-          </button>
+          <ThemeToggle mounted={mounted} resolvedTheme={resolvedTheme} setTheme={setTheme} />
 
           <button
             onClick={toggleCartDrawer}

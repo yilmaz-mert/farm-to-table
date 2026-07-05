@@ -112,6 +112,72 @@ Form Tarihi : ${ctx.orderDate}
 `
 }
 
+export function generateKvkkAydinlatmaMetni(ctx: LegalContext): string {
+  return `KVKK AYDINLATMA METNİ
+(6698 Sayılı Kişisel Verilerin Korunması Kanunu Madde 10 Kapsamında)
+
+─────────────────────────────────────────
+1. VERİ SORUMLUSU
+─────────────────────────────────────────
+6698 Sayılı Kişisel Verilerin Korunması Kanunu ("KVKK") uyarınca, kişisel verileriniz veri sorumlusu sıfatıyla ${SELLER.companyName} ("Şirket") tarafından aşağıda açıklanan kapsamda işlenebilecektir.
+
+Unvan   : ${SELLER.companyName}
+Adres   : ${SELLER.address}
+E-posta : ${SELLER.email}
+MERSİS  : ${SELLER.mersis}
+
+─────────────────────────────────────────
+2. İŞLENEN KİŞİSEL VERİLER
+─────────────────────────────────────────
+Sipariş sürecinde tarafınıza ait aşağıdaki kişisel veriler işlenmektedir:
+  • Kimlik bilgileri (Ad Soyad)
+  • İletişim bilgileri (E-posta, telefon)
+  • Adres bilgileri (Teslimat adresi, il, posta kodu)
+  • İşlem güvenliği ve sipariş bilgileri (Sipariş içeriği, tutar, IP adresi, ödeme onay kaydı)
+
+Alıcı   : ${ctx.buyerName}
+E-posta : ${ctx.buyerEmail}
+
+─────────────────────────────────────────
+3. İŞLEME AMAÇLARI
+─────────────────────────────────────────
+Kişisel verileriniz; siparişinizin alınması, hasat planlamasının yapılması, ürünün soğuk zincirde paketlenmesi ve kargoya verilmesi, ödeme işleminin gerçekleştirilmesi ve doğrulanması, fatura düzenlenmesi, yasal saklama yükümlülüklerinin yerine getirilmesi ve müşteri hizmetleri süreçlerinin yürütülmesi amaçlarıyla sınırlı olarak işlenmektedir.
+
+─────────────────────────────────────────
+4. HUKUKİ SEBEP VE TOPLAMA YÖNTEMİ
+─────────────────────────────────────────
+Kişisel verileriniz, KVKK Madde 5/2(c) "bir sözleşmenin kurulması veya ifasıyla doğrudan doğruya ilgili olması" ve Madde 5/2(ç) "veri sorumlusunun hukuki yükümlülüğünü yerine getirebilmesi" hukuki sebeplerine dayanılarak, işbu sipariş formunun elektronik ortamda doldurulması yoluyla otomatik yollarla toplanmaktadır.
+
+─────────────────────────────────────────
+5. KİŞİSEL VERİLERİN AKTARILMASI
+─────────────────────────────────────────
+Kişisel verileriniz; siparişinizin teslimatının sağlanması amacıyla anlaşmalı kargo firmalarına, ödemenin tahsili amacıyla ödeme altyapısı sağlayıcısına (Iyzico) ve yasal talep halinde yetkili kamu kurum ve kuruluşlarına, KVKK'da öngörülen temel ilkelere uygun ve gerekli güvenlik önlemleri alınarak aktarılabilecektir. Verileriniz pazarlama amacıyla üçüncü şahıslarla paylaşılmamaktadır.
+
+─────────────────────────────────────────
+6. VERİ SAHİBİNİN HAKLARI (KVKK MADDE 11)
+─────────────────────────────────────────
+KVKK'nın 11. maddesi uyarınca, veri sahibi olarak;
+  • Kişisel verinizin işlenip işlenmediğini öğrenme,
+  • İşlenmişse buna ilişkin bilgi talep etme,
+  • İşlenme amacını ve amacına uygun kullanılıp kullanılmadığını öğrenme,
+  • Yurt içinde/yurt dışında aktarıldığı üçüncü kişileri bilme,
+  • Eksik/yanlış işlenmişse düzeltilmesini isteme,
+  • KVKK Madde 7 kapsamında silinmesini/yok edilmesini isteme,
+  • Yapılan düzeltme/silme işlemlerinin aktarıldığı üçüncü kişilere bildirilmesini isteme,
+  • İşlenen verilerin münhasıran otomatik sistemler ile analiz edilmesi suretiyle aleyhinize bir sonucun ortaya çıkmasına itiraz etme,
+  • Kanuna aykırı işleme nedeniyle zarara uğramanız halinde zararın giderilmesini talep etme
+
+haklarına sahipsiniz.
+
+─────────────────────────────────────────
+7. BAŞVURU YÖNTEMİ
+─────────────────────────────────────────
+Yukarıda sayılan haklarınıza ilişkin taleplerinizi ${SELLER.email} adresine yazılı olarak iletebilirsiniz. Talebiniz, niteliğine göre en kısa sürede ve en geç otuz gün içinde ücretsiz olarak sonuçlandırılır.
+
+Metin Tarihi : ${ctx.orderDate}
+`
+}
+
 export function generateMesafeliSatisSozlesmesi(ctx: LegalContext): string {
   return `MESAFELİ SATIŞ SÖZLEŞMESİ
 

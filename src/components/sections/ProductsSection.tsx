@@ -1,13 +1,13 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import Image from 'next/image'
 import { motion, AnimatePresence, useInView, useReducedMotion } from 'framer-motion'
 import { Minus, Plus, Check, CalendarClock } from 'lucide-react'
 import { useCartStore, type CartItem } from '@/store/cart'
 import { useUIStore } from '@/store/ui'
 import { formatPrice } from '@/lib/utils'
 import { getBlackoutInfo } from '@/lib/harvest'
-import { SectionBackground } from '@/components/shared/SectionBackground'
 
 const ease: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
 
@@ -21,7 +21,11 @@ interface Package {
   priceInKurus: number
   description: string
   highlight: string | null
-  imageUrl: string
+  /** Admin-uploaded photo (see /admin/settings) — null until one is set,
+   *  in which case the card shows a decorative gradient instead. */
+  imageUrl: string | null
+  /** Decorative fallback shown until an admin uploads a real photo. */
+  art: string
 }
 
 const PACKAGES: Package[] = [
@@ -35,7 +39,8 @@ const PACKAGES: Package[] = [
     priceInKurus: 47900,
     description: 'İlk tanışma için ideal. Tek sıra dizilmiş, 26 mm+ kalibre kiraz.',
     highlight: null,
-    imageUrl: '/images/products/kiraz-1kg.jpg',
+    imageUrl: null,
+    art: 'linear-gradient(135deg, oklch(36% 0.16 22), oklch(19% 0.09 22) 60%, oklch(26% 0.07 192))',
   },
   {
     productId: 'organik-kiraz',
@@ -47,7 +52,8 @@ const PACKAGES: Package[] = [
     priceInKurus: 84900,
     description: 'En çok tercih edilen boy. Çift katman EPS kutuda, jel buzlu.',
     highlight: 'En Popüler',
-    imageUrl: '/images/products/kiraz-2kg.jpg',
+    imageUrl: null,
+    art: 'linear-gradient(145deg, oklch(54% 0.17 18), oklch(28% 0.13 22) 65%)',
   },
   {
     productId: 'organik-visne',
@@ -59,7 +65,8 @@ const PACKAGES: Package[] = [
     priceInKurus: 99000,
     description: 'Reçel, şerbet ve dondurmalık — asidi yüksek, aroması derin.',
     highlight: null,
-    imageUrl: '/images/products/visne-3kg.jpg',
+    imageUrl: null,
+    art: 'linear-gradient(150deg, oklch(76% 0.09 192), oklch(35% 0.09 192) 75%)',
   },
   {
     productId: 'organik-kiraz',
@@ -71,7 +78,8 @@ const PACKAGES: Package[] = [
     priceInKurus: 189000,
     description: 'Kalabalık sofralar ve reçellik ayırmak isteyenler için.',
     highlight: 'Kilo Başı Avantaj',
-    imageUrl: '/images/products/kiraz-5kg.jpg',
+    imageUrl: null,
+    art: 'linear-gradient(140deg, oklch(66% 0.13 16), oklch(36% 0.16 22) 70%, oklch(19% 0.09 22))',
   },
 ]
 
@@ -121,12 +129,36 @@ function ProductCard({ pkg, index }: { pkg: Package; index: number }) {
       transition={{ duration: 0.6, delay: reduced ? 0 : index * 0.1, ease }}
       className="relative flex flex-col rounded-2xl border border-border bg-surface shadow-sm"
     >
-      {/* Highlight ribbon */}
+      {/* Highlight ribbon — the article itself must NOT have overflow-hidden,
+          or this -top-3 offset (positioned above the card's own top edge)
+          gets clipped by it. Only the image container below needs clipping,
+          for its own corner rounding. */}
       {pkg.highlight && (
-        <span className="absolute -top-3 left-6 rounded-full bg-cta px-3 py-1 font-sans text-[11px] font-semibold text-inverted shadow-sm">
+        <span className="absolute -top-3 left-6 z-10 rounded-full bg-cta px-3 py-1 font-sans text-[11px] font-semibold text-inverted shadow-sm">
           {pkg.highlight}
         </span>
       )}
+
+      {/* Package photo — admin-uploaded (see /admin/settings), gradient
+          placeholder until one is set. Fixed aspect ratio guarantees zero
+          layout shift either way. rounded-t-2xl + overflow-hidden here
+          (not on the article) matches the card's top corners without
+          clipping the ribbon above. */}
+      <div
+        className="relative aspect-[4/3] w-full overflow-hidden rounded-t-2xl"
+        style={{ background: pkg.art }}
+      >
+        {pkg.imageUrl && (
+          <Image
+            src={pkg.imageUrl}
+            alt={`${pkg.name} — ${pkg.variant}`}
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 300px"
+            quality={80}
+            className="object-cover"
+          />
+        )}
+      </div>
 
       <div className="flex flex-1 flex-col p-6">
         {/* Product identity */}
@@ -234,6 +266,8 @@ export interface ProductContent {
    *  fallback to the hardcoded highlight: this is how an admin actually
    *  hides a ribbon that used to be there. */
   highlightBadge: string | null
+  /** Admin-uploaded package photo — null shows the gradient placeholder. */
+  imageUrl: string | null
 }
 
 interface ProductsSectionProps {
@@ -241,11 +275,9 @@ interface ProductsSectionProps {
    *  hardcoded PACKAGES fields when a weight has no matching DB row. Each
    *  package's title is an independent string with no shared substitution. */
   dbContent?: Record<number, ProductContent>
-  /** Admin-editable ambient section background (see /admin/settings). */
-  productsBgUrl?: string | null
 }
 
-export function ProductsSection({ dbContent, productsBgUrl }: ProductsSectionProps) {
+export function ProductsSection({ dbContent }: ProductsSectionProps) {
   const hdrRef = useRef<HTMLDivElement>(null)
   const hdrInView = useInView(hdrRef, { once: true, margin: '-80px 0px' })
   const reduced = useReducedMotion() ?? false
@@ -269,14 +301,14 @@ export function ProductsSection({ dbContent, productsBgUrl }: ProductsSectionPro
               // No `||` fallback — an admin clearing this field to hide a
               // ribbon must actually hide it, not resurrect the hardcoded one.
               highlight: content.highlightBadge,
+              imageUrl: content.imageUrl,
             }
           : pkg
       })
     : PACKAGES
 
   return (
-    <section id="urunler" className="relative overflow-hidden bg-background py-24 scroll-mt-24">
-      <SectionBackground imageUrl={productsBgUrl} />
+    <section id="urunler" className="bg-background py-24 scroll-mt-24">
       <div className="container-page">
         {/* Header */}
         <div ref={hdrRef} className="mb-12 max-w-2xl">

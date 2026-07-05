@@ -45,12 +45,14 @@ export default async function HomePage() {
   const [{ data: products }, { data: galleryRows }, { data: settings }] = await Promise.all([
     supabase
       .from('products')
-      .select('name, package_weight_kg, total_price, description, marketing_copy, highlight_badge')
+      .select(
+        'name, package_weight_kg, total_price, description, marketing_copy, highlight_badge, image_url'
+      )
       .eq('is_active', true),
     supabase.from('gallery_shots').select('*').order('slot_index'),
     supabase
       .from('store_settings')
-      .select('hero_image_url, hero_video_url, products_bg_url, features_bg_url')
+      .select('hero_image_url, hero_video_url')
       .eq('id', 1)
       .maybeSingle(),
   ])
@@ -64,6 +66,7 @@ export default async function HomePage() {
         variantTitle: p.description ?? '',
         description: p.marketing_copy ?? '',
         highlightBadge: p.highlight_badge,
+        imageUrl: p.image_url,
       },
     ])
   )
@@ -105,13 +108,13 @@ export default async function HomePage() {
           </div>
         </section>
 
-        <ProductsSection dbContent={dbContent} productsBgUrl={settings?.products_bg_url} />
+        <ProductsSection dbContent={dbContent} />
 
         <ShippingCalculator />
 
-        <StorySection featuresBgUrl={settings?.features_bg_url} />
+        <StorySection />
 
-        <TransparencySection featuresBgUrl={settings?.features_bg_url} />
+        <TransparencySection />
 
         <GallerySection shots={gallery} />
 

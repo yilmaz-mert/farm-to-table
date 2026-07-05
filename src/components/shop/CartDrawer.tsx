@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Minus, Plus, ShoppingBag, Trash2, ShieldCheck, Clock } from 'lucide-react'
 import {
@@ -47,10 +48,14 @@ function CartItemRow({
     <div className="flex gap-3 py-4">
       {/* Art / image */}
       <div
-        className="h-16 w-16 shrink-0 rounded-xl"
+        className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl"
         style={{ background: ITEM_ARTS[index % ITEM_ARTS.length] }}
         aria-hidden
-      />
+      >
+        {item.imageUrl && (
+          <Image src={item.imageUrl} alt="" fill sizes="64px" className="object-cover" />
+        )}
+      </div>
 
       {/* Info */}
       <div className="flex min-w-0 flex-1 flex-col gap-2">

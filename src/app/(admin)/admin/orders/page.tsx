@@ -11,33 +11,17 @@ import {
   Filter,
   RefreshCw,
   Ban,
+  AlertTriangle,
 } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
 import { formatPrice } from '@/lib/utils'
 import { cn } from '@/lib/utils'
-
-type OrderStatus =
-  | 'pending_payment'
-  | 'new_order'
-  | 'harvesting'
-  | 'packed'
-  | 'shipped'
-  | 'cancelled'
-
-interface Order {
-  id: string
-  order_number: string
-  customer_name: string
-  customer_email: string
-  customer_phone: string
-  city: string
-  total_amount: number
-  status: OrderStatus
-  tracking_number: string | null
-  invoice_url: string | null
-  created_at: string
-  reserved_until: string | null
-}
+import {
+  fetchOrdersForAdmin,
+  updateOrderStatus,
+  updateOrderTrackingInfo,
+  type OrderStatus,
+  type AdminOrder as Order,
+} from './actions'
 
 const STATUS_META: Record<
   OrderStatus,
@@ -360,32 +344,32 @@ function OrderCard({
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [filter, setFilter] = useState<OrderStatus | 'all'>('all')
   const [detailOrder, setDetailOrder] = useState<Order | null>(null)
-  const supabase = createClient()
 
   const fetchOrders = useCallback(async () => {
     setLoading(true)
-    const { data } = await supabase
-      .from('orders')
-      .select(
-        'id, order_number, customer_name, customer_email, customer_phone, city, total_amount, status, tracking_number, invoice_url, created_at, reserved_until'
-      )
-      .order('created_at', { ascending: false })
-      .limit(200)
-    setOrders((data as Order[]) ?? [])
+    setError(null)
+    const result = await fetchOrdersForAdmin()
+    if (!result.success) {
+      setError(result.error)
+      setLoading(false)
+      return
+    }
+    setOrders(result.orders)
     setLoading(false)
-  }, [supabase])
+  }, [])
 
   useEffect(() => {
     fetchOrders()
   }, [fetchOrders])
 
   async function handleStatusChange(id: string, status: OrderStatus) {
-    if (status !== 'pending_payment') {
-      await supabase.from('orders').update({ status, reserved_until: null }).eq('id', id)
-    } else {
-      await supabase.from('orders').update({ status }).eq('id', id)
+    const result = await updateOrderStatus(id, status)
+    if (!result.success) {
+      setError(result.error)
+      return
     }
     setOrders((prev) =>
       prev.map((o) => (o.id === id ? { ...o, status, reserved_until: null } : o))
@@ -393,10 +377,11 @@ export default function AdminOrdersPage() {
   }
 
   async function handleDetailSave(id: string, tracking: string, invoice: string) {
-    await supabase
-      .from('orders')
-      .update({ tracking_number: tracking || null, invoice_url: invoice || null })
-      .eq('id', id)
+    const result = await updateOrderTrackingInfo(id, tracking, invoice)
+    if (!result.success) {
+      setError(result.error)
+      return
+    }
     setOrders((prev) =>
       prev.map((o) =>
         o.id === id
@@ -429,6 +414,13 @@ export default function AdminOrdersPage() {
             Yenile
           </button>
         </div>
+
+        {error && (
+          <div className="mx-4 mt-3 flex items-start gap-2.5 rounded-xl border border-red-800/30 bg-red-950/30 p-3">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-400" aria-hidden />
+            <p className="font-sans text-xs text-red-400">{error}</p>
+          </div>
+        )}
 
         {/* Filter chips */}
         <div className="flex gap-2 overflow-x-auto px-4 py-3 scrollbar-none">

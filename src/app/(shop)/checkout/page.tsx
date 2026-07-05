@@ -2,17 +2,20 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { ShieldCheck, Loader2, ChevronRight, Lock } from 'lucide-react'
 import { useCartStore, cartTotal, type CartItem } from '@/store/cart'
 import { formatPrice } from '@/lib/utils'
 import {
   generateMesafeliSatisSozlesmesi,
   generateOnBilgilendirmeFormu,
+  generateKvkkAydinlatmaMetni,
   PERISHABLE_NOTICE,
   type LegalContext,
 } from '@/lib/legal/generator'
 import { LegalModal } from '@/components/shop/LegalModal'
 import { OrderSuccessModal } from '@/components/shop/OrderSuccessModal'
+import { IyzicoSandboxModal } from '@/components/shop/IyzicoSandboxModal'
 
 interface FormState {
   fullName: string
@@ -37,7 +40,7 @@ interface LegalState {
   kvkkAccepted: boolean
 }
 
-type ModalDoc = 'mss' | 'onbilgi' | null
+type ModalDoc = 'mss' | 'onbilgi' | 'kvkk' | null
 
 function validate(form: FormState): FormErrors {
   const errors: FormErrors = {}
@@ -116,6 +119,10 @@ export default function CheckoutPage() {
     orderId: string
     orderNumber: string
   } | null>(null)
+  const [sandboxOrder, setSandboxOrder] = useState<{
+    orderId: string
+    orderNumber: string
+  } | null>(null)
 
   useEffect(() => {
     setMounted(true)
@@ -147,6 +154,12 @@ export default function CheckoutPage() {
       return {
         title: 'Mesafeli Satış Sözleşmesi',
         content: generateMesafeliSatisSozlesmesi(ctx),
+      }
+    }
+    if (modalDoc === 'kvkk') {
+      return {
+        title: 'KVKK Aydınlatma Metni',
+        content: generateKvkkAydinlatmaMetni(ctx),
       }
     }
     return {
@@ -198,8 +211,10 @@ export default function CheckoutPage() {
       }
 
       if (data.isSandbox) {
-        clearCart()
-        setSuccessData({ orderId: data.orderId, orderNumber: data.orderNumber })
+        // Don't clear the cart or show success yet — the order is still
+        // `pending_payment` until the admin/test payment is actually
+        // simulated and confirmed via the modal below.
+        setSandboxOrder({ orderId: data.orderId, orderNumber: data.orderNumber })
         return
       }
 
@@ -493,8 +508,14 @@ export default function CheckoutPage() {
                       className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-primary"
                     />
                     <span className="font-sans text-sm text-muted">
-                      Kişisel verilerimin sipariş ve teslimat amacıyla işlenmesini{' '}
-                      <span className="font-medium text-text">KVKK kapsamında</span> onaylıyorum. *
+                      <button
+                        type="button"
+                        onClick={() => setModalDoc('kvkk')}
+                        className="font-medium text-primary underline-offset-2 hover:underline"
+                      >
+                        KVKK Aydınlatma Metni
+                      </button>
+                      &apos;ni okudum, kişisel verilerimin sipariş ve teslimat amacıyla işlenmesini onaylıyorum. *
                     </span>
                   </label>
 
@@ -541,13 +562,23 @@ export default function CheckoutPage() {
                       {mountedItems.map((item) => (
                         <div key={item.variantId} className="flex items-start gap-3 py-3.5">
                           <div
-                            className="h-10 w-10 shrink-0 rounded-lg"
+                            className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg"
                             style={{
                               background:
                                 'linear-gradient(135deg, oklch(36% 0.16 22), oklch(19% 0.09 22))',
                             }}
                             aria-hidden
-                          />
+                          >
+                            {item.imageUrl && (
+                              <Image
+                                src={item.imageUrl}
+                                alt=""
+                                fill
+                                sizes="40px"
+                                className="object-cover"
+                              />
+                            )}
+                          </div>
                           <div className="min-w-0 flex-1">
                             <p className="truncate font-sans text-sm font-medium text-text">
                               {item.name}
@@ -605,7 +636,23 @@ export default function CheckoutPage() {
         />
       )}
 
-      {/* Success modal (sandbox mode) */}
+      {/* Iyzico test payment simulation (sandbox mode — no real keys configured) */}
+      {sandboxOrder && (
+        <IyzicoSandboxModal
+          open
+          orderId={sandboxOrder.orderId}
+          orderNumber={sandboxOrder.orderNumber}
+          amountLabel={formatPrice(total)}
+          onClose={() => setSandboxOrder(null)}
+          onConfirmed={() => {
+            clearCart()
+            setSuccessData(sandboxOrder)
+            setSandboxOrder(null)
+          }}
+        />
+      )}
+
+      {/* Success modal */}
       {successData && (
         <OrderSuccessModal
           open

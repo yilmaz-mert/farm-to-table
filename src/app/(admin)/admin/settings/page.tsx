@@ -409,14 +409,10 @@ export default function AdminSettingsPage() {
   const [urgencyBlitzMode, setUrgencyBlitzMode] = useState(false)
   const [heroImageUrl, setHeroImageUrl] = useState<string | null>(null)
   const [heroVideoUrl, setHeroVideoUrl] = useState<string | null>(null)
-  const [productsBgUrl, setProductsBgUrl] = useState<string | null>(null)
-  const [featuresBgUrl, setFeaturesBgUrl] = useState<string | null>(null)
   const [gallerySlots, setGallerySlots] = useState<GalleryDraft[]>(defaultGallerySlots())
 
   const [uploadingHero, setUploadingHero] = useState(false)
   const [uploadingHeroVideo, setUploadingHeroVideo] = useState(false)
-  const [uploadingProductsBg, setUploadingProductsBg] = useState(false)
-  const [uploadingFeaturesBg, setUploadingFeaturesBg] = useState(false)
   const [uploadingProductId, setUploadingProductId] = useState<string | null>(null)
   const [uploadingSlot, setUploadingSlot] = useState<number | null>(null)
 
@@ -453,9 +449,7 @@ export default function AdminSettingsPage() {
           .maybeSingle(),
         supabase
           .from('store_settings')
-          .select(
-            'urgency_blitz_mode, hero_image_url, hero_video_url, products_bg_url, features_bg_url'
-          )
+          .select('urgency_blitz_mode, hero_image_url, hero_video_url')
           .eq('id', 1)
           .maybeSingle(),
         supabase.from('gallery_shots').select('*').order('slot_index'),
@@ -486,8 +480,6 @@ export default function AdminSettingsPage() {
         setUrgencyBlitzMode(settingsRes.data.urgency_blitz_mode)
         setHeroImageUrl(settingsRes.data.hero_image_url)
         setHeroVideoUrl(settingsRes.data.hero_video_url)
-        setProductsBgUrl(settingsRes.data.products_bg_url)
-        setFeaturesBgUrl(settingsRes.data.features_bg_url)
       }
 
       // Merge fetched rows onto the 6 default slots by position — a slot
@@ -573,20 +565,6 @@ export default function AdminSettingsPage() {
     setUploadingHeroVideo(false)
   }, [uploadToStoreMedia])
 
-  const handleProductsBgFile = useCallback(async (file: File) => {
-    setUploadingProductsBg(true)
-    const url = await uploadToStoreMedia(file, buildMediaPath('sections/products-bg', file))
-    if (url) setProductsBgUrl(url)
-    setUploadingProductsBg(false)
-  }, [uploadToStoreMedia])
-
-  const handleFeaturesBgFile = useCallback(async (file: File) => {
-    setUploadingFeaturesBg(true)
-    const url = await uploadToStoreMedia(file, buildMediaPath('sections/features-bg', file))
-    if (url) setFeaturesBgUrl(url)
-    setUploadingFeaturesBg(false)
-  }, [uploadToStoreMedia])
-
   const handleProductFile = useCallback(async (productId: string, file: File) => {
     setUploadingProductId(productId)
     const url = await uploadToStoreMedia(file, buildMediaPath(`products/${productId}`, file))
@@ -623,15 +601,6 @@ export default function AdminSettingsPage() {
     setHeroVideoUrl(null)
   }, [heroVideoUrl, queueDeletion])
 
-  const handleRemoveProductsBg = useCallback(() => {
-    queueDeletion(productsBgUrl)
-    setProductsBgUrl(null)
-  }, [productsBgUrl, queueDeletion])
-
-  const handleRemoveFeaturesBg = useCallback(() => {
-    queueDeletion(featuresBgUrl)
-    setFeaturesBgUrl(null)
-  }, [featuresBgUrl, queueDeletion])
 
   const handleRemoveProductImage = useCallback((productId: string) => {
     setProducts((ps) => {
@@ -694,8 +663,6 @@ export default function AdminSettingsPage() {
         urgencyBlitzMode,
         heroImageUrl,
         heroVideoUrl,
-        productsBgUrl,
-        featuresBgUrl,
         gallerySlots: gallerySlots.map((g) => ({
           slot_index: g.slot_index,
           category: g.category,
@@ -929,20 +896,6 @@ export default function AdminSettingsPage() {
               uploading={uploadingHeroVideo}
               onFileSelected={handleHeroVideoFile}
               onRemove={handleRemoveHeroVideo}
-            />
-            <ImageUploadRow
-              label="Ürünler Bölümü Arkaplanı"
-              imageUrl={productsBgUrl}
-              uploading={uploadingProductsBg}
-              onFileSelected={handleProductsBgFile}
-              onRemove={handleRemoveProductsBg}
-            />
-            <ImageUploadRow
-              label="Hikaye & Şeffaflık Arkaplanı"
-              imageUrl={featuresBgUrl}
-              uploading={uploadingFeaturesBg}
-              onFileSelected={handleFeaturesBgFile}
-              onRemove={handleRemoveFeaturesBg}
             />
             {products.map((p) => (
               <ImageUploadRow

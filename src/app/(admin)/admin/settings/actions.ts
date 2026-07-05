@@ -35,8 +35,6 @@ interface SaveSettingsPayload {
   urgencyBlitzMode: boolean
   heroImageUrl: string | null
   heroVideoUrl: string | null
-  productsBgUrl: string | null
-  featuresBgUrl: string | null
   gallerySlots: GalleryUpdate[]
   /** Full public URLs cleared via "Görseli Kaldır" this session — deleted
    *  from the store-media bucket only after every DB write below succeeds. */
@@ -141,8 +139,6 @@ export async function saveAdminSettings(payload: SaveSettingsPayload): Promise<S
       urgency_blitz_mode: payload.urgencyBlitzMode,
       hero_image_url: payload.heroImageUrl,
       hero_video_url: payload.heroVideoUrl,
-      products_bg_url: payload.productsBgUrl,
-      features_bg_url: payload.featuresBgUrl,
       updated_at: new Date().toISOString(),
     })
     .select('id')

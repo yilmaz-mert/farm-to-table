@@ -11,7 +11,7 @@ export interface CartItem {
   priceInKurus: number
   quantity: number
   unit: 'g' | 'kg' | 'piece'
-  imageUrl: string
+  imageUrl: string | null
 }
 
 /** How long a harvest-quota reservation is held after the first item is added. */

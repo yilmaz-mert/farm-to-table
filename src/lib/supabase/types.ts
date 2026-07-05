@@ -177,8 +177,6 @@ export type Database = {
           urgency_blitz_mode: boolean
           hero_image_url: string | null
           hero_video_url: string | null
-          products_bg_url: string | null
-          features_bg_url: string | null
           updated_at: string
         }
         Insert: {
@@ -186,8 +184,6 @@ export type Database = {
           urgency_blitz_mode?: boolean
           hero_image_url?: string | null
           hero_video_url?: string | null
-          products_bg_url?: string | null
-          features_bg_url?: string | null
           updated_at?: string
         }
         Update: {
@@ -195,8 +191,6 @@ export type Database = {
           urgency_blitz_mode?: boolean
           hero_image_url?: string | null
           hero_video_url?: string | null
-          products_bg_url?: string | null
-          features_bg_url?: string | null
           updated_at?: string
         }
         Relationships: []
