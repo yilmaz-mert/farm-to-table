@@ -20,6 +20,27 @@ export function formatWeight(grams: number): string {
   return `${grams} g`
 }
 
+/**
+ * Tiny shimmer SVG encoded as a data URL, used as `next/image`'s
+ * `blurDataURL` for images whose real source is admin-uploaded at runtime
+ * (so no build-time blurhash can be generated). Prevents a blank flash
+ * while the actual photo streams in — the fixed-aspect wrapper already
+ * guarantees zero CLS, this just makes the wait feel intentional.
+ */
+function shimmerSvg(w: number, h: number): string {
+  return `<svg width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="g"><stop stop-color="#eee7dd" offset="20%"/><stop stop-color="#e0d5c4" offset="50%"/><stop stop-color="#eee7dd" offset="70%"/></linearGradient></defs><rect width="${w}" height="${h}" fill="#eee7dd"/><rect width="${w}" height="${h}" fill="url(#g)"/></svg>`
+}
+
+function toBase64(str: string): string {
+  return typeof window === 'undefined'
+    ? Buffer.from(str).toString('base64')
+    : window.btoa(str)
+}
+
+export function shimmerBlurDataURL(w = 64, h = 64): string {
+  return `data:image/svg+xml;base64,${toBase64(shimmerSvg(w, h))}`
+}
+
 export function slugify(text: string): string {
   return text
     .toLowerCase()

@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react'
 import { motion, AnimatePresence, useInView, useReducedMotion } from 'framer-motion'
 import { QrCode, Clock, Map, Users, Fingerprint } from 'lucide-react'
+import { useIsMobile } from '@/hooks/useIsMobile'
 
 const ease: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
 
@@ -61,7 +62,12 @@ const TRACE_FIELDS = [
 export function TransparencySection() {
   const secRef = useRef<HTMLDivElement>(null)
   const inView = useInView(secRef, { once: true, margin: '-80px 0px' })
-  const reduced = useReducedMotion() ?? false
+  const reducedMotion = useReducedMotion() ?? false
+  const isMobile = useIsMobile()
+  // On mobile this also simplifies the tap-triggered QR reveal panel below
+  // (skips the `height: auto` animation, which forces layout on every
+  // frame) down to a plain opacity fade.
+  const reduced = reducedMotion || isMobile
   const [revealed, setRevealed] = useState(false)
 
   return (

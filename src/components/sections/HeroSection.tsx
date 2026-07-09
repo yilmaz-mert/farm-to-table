@@ -1,9 +1,12 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { ArrowRight } from 'lucide-react'
 import { motion, useReducedMotion } from 'framer-motion'
-import { cn } from '@/lib/utils'
+import { cn, shimmerBlurDataURL } from '@/lib/utils'
+
+const HERO_BLUR = shimmerBlurDataURL(64, 40)
 
 const ease: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
 
@@ -76,11 +79,22 @@ export function HeroSection({ heroImageUrl, heroVideoUrl }: HeroSectionProps) {
               loop
               playsInline
               preload="metadata"
+              // fetchPriority isn't in React's VideoHTMLAttributes typings yet,
+              // but it's a valid HTML attribute browsers respect for LCP hints.
+              {...{ fetchpriority: 'high' }}
             />
           ) : (
-            <div
-              className="absolute inset-0 origin-center transform-gpu bg-cover bg-center"
-              style={{ backgroundImage: `url(${heroImageUrl})` }}
+            <Image
+              src={heroImageUrl!}
+              alt=""
+              fill
+              priority
+              fetchPriority="high"
+              sizes="100vw"
+              quality={85}
+              placeholder="blur"
+              blurDataURL={HERO_BLUR}
+              className="origin-center transform-gpu object-cover"
             />
           )}
           {/* No blanket tint over the photo. A left-anchored scrim behind

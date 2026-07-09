@@ -79,8 +79,52 @@ export default async function HomePage() {
     imageUrl: g.image_url,
   }))
 
+  // Product JSON-LD price ranges reflect live admin-edited prices when
+  // available (see /admin dashboard PriceEditor), falling back to the
+  // same representative figures as PACKAGES in ProductsSection so the
+  // structured data is never empty on a fresh install.
+  const priceGroups = new Map<string, number[]>()
+  for (const p of products ?? []) {
+    if (!p.name) continue
+    const prices = priceGroups.get(p.name) ?? []
+    prices.push(Number(p.total_price))
+    priceGroups.set(p.name, prices)
+  }
+  const productGroups =
+    priceGroups.size > 0
+      ? Array.from(priceGroups.entries()).map(([name, prices]) => ({
+          name,
+          low: Math.min(...prices),
+          high: Math.max(...prices),
+        }))
+      : [
+          { name: 'Organik Kiraz', low: 479, high: 1890 },
+          { name: 'Organik Vişne', low: 990, high: 990 },
+        ]
+
+  const productJsonLd = productGroups.map((group) => ({
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: group.name,
+    brand: { '@type': 'Brand', name: 'Dalından Kapıya' },
+    category: 'Taze Meyve',
+    description:
+      'Konya’nın bereketli bahçelerinden hasat edilen sertifikalı organik meyve, hasadın aynı günü soğuk zincirde kapınıza.',
+    offers: {
+      '@type': 'AggregateOffer',
+      priceCurrency: 'TRY',
+      lowPrice: group.low,
+      highPrice: group.high,
+      availability: 'https://schema.org/InStock',
+    },
+  }))
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
+      />
       <ShopNavbar />
 
       <main>

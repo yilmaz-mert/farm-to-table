@@ -6,10 +6,11 @@ import { motion, AnimatePresence, useInView, useReducedMotion } from 'framer-mot
 import { Minus, Plus, Check, CalendarClock } from 'lucide-react'
 import { useCartStore, type CartItem } from '@/store/cart'
 import { useUIStore } from '@/store/ui'
-import { formatPrice } from '@/lib/utils'
+import { formatPrice, shimmerBlurDataURL } from '@/lib/utils'
 import { getBlackoutInfo } from '@/lib/harvest'
 
 const ease: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
+const PRODUCT_BLUR = shimmerBlurDataURL(400, 300)
 
 interface Package {
   productId: string
@@ -155,6 +156,9 @@ function ProductCard({ pkg, index }: { pkg: Package; index: number }) {
             fill
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 300px"
             quality={80}
+            loading="lazy"
+            placeholder="blur"
+            blurDataURL={PRODUCT_BLUR}
             className="object-cover"
           />
         )}

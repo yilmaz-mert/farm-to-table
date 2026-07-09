@@ -37,33 +37,67 @@ export const viewport: Viewport = {
   initialScale: 1,
 }
 
+const SITE_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://dalindankapiya.com.tr'
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: 'Dalından Kapıya — Premium Organik Kiraz',
+    default: 'Dalından Kapıya — Konya’dan Premium Organik Kiraz ve Vişne',
     template: '%s | Dalından Kapıya',
   },
   description:
-    'Karadeniz yüksek irtifa bahçelerinden hasat edilen sertifikalı organik kiraz ve vişne. Aracısız, soğuk zincirde, hasadın aynı günü kapınıza.',
-  keywords: ['organik kiraz', 'organik vişne', 'sertifikalı organik', 'farm to table', 'dalından kapıya', 'taze kiraz'],
+    'Konya’nın bereketli bahçelerinden hasat edilen sertifikalı organik kiraz ve vişne. Aracısız, soğuk zincirde, hasadın aynı günü kapınıza.',
+  keywords: [
+    'organik kiraz',
+    'organik vişne',
+    'konya kiraz',
+    'konya organik meyve',
+    'sertifikalı organik kiraz',
+    'farm to table',
+    'dalından kapıya',
+    'taze kiraz siparişi',
+    'çiftlikten sofraya kiraz',
+  ],
   authors: [{ name: 'Dalından Kapıya' }],
+  alternates: {
+    canonical: '/',
+  },
   openGraph: {
     type: 'website',
     locale: 'tr_TR',
     siteName: 'Dalından Kapıya',
-    title: 'Dalından Kapıya — Premium Organik Kiraz',
+    url: SITE_URL,
+    title: 'Dalından Kapıya — Konya’dan Premium Organik Kiraz ve Vişne',
     description:
-      'Karadeniz yüksek irtifa bahçelerinden hasat edilen sertifikalı organik kiraz ve vişne.',
+      'Konya’nın bereketli bahçelerinden hasat edilen sertifikalı organik kiraz ve vişne. Aracısız, soğuk zincirde, hasadın aynı günü kapınıza.',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Dalından Kapıya — Premium Organik Kiraz',
-    description: 'Karadeniz yüksek irtifa bahçelerinden sertifikalı organik kiraz.',
+    title: 'Dalından Kapıya — Konya’dan Premium Organik Kiraz ve Vişne',
+    description: 'Konya’nın bereketli bahçelerinden sertifikalı organik kiraz ve vişne.',
   },
   robots: {
     index: true,
     follow: true,
     googleBot: { index: true, follow: true },
   },
+}
+
+const localBusinessJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'LocalBusiness',
+  name: 'Dalından Kapıya Tarım Ürünleri',
+  description:
+    'Konya’nın bereketli topraklarından sertifikalı organik kiraz ve vişne üreticisi. Aracısız, soğuk zincirde, hasadın aynı günü kapınıza.',
+  url: SITE_URL,
+  email: 'siparis@dalindankapiya.com.tr',
+  address: {
+    '@type': 'PostalAddress',
+    addressLocality: 'Konya',
+    addressCountry: 'TR',
+  },
+  areaServed: 'TR',
+  priceRange: '₺₺',
 }
 
 export default function RootLayout({
@@ -77,6 +111,10 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="antialiased">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessJsonLd) }}
+        />
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
           <LenisProvider>
             {children}

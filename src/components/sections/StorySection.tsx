@@ -1,8 +1,10 @@
 'use client'
 
 import { useRef } from 'react'
-import { motion, useInView } from 'framer-motion'
+import { motion, useInView, useReducedMotion } from 'framer-motion'
 import { FlaskConical, ScanLine, PackageCheck } from 'lucide-react'
+import { useIsMobile } from '@/hooks/useIsMobile'
+import { cn } from '@/lib/utils'
 
 const ease: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
 
@@ -45,15 +47,21 @@ function StoryCard({
 }) {
   const ref = useRef<HTMLDivElement>(null)
   const inView = useInView(ref, { once: true, margin: '-72px 0px' })
+  const reducedMotion = useReducedMotion() ?? false
+  const isMobile = useIsMobile()
+  const reduced = reducedMotion || isMobile
   const { Icon, stat, statUnit, title, body, iconBg, iconFg } = story
 
   return (
     <motion.div
       ref={ref}
-      initial={{ opacity: 0, y: 28 }}
+      initial={reduced ? { opacity: 0 } : { opacity: 0, y: 28 }}
       animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.65, delay: index * 0.13, ease }}
-      className="flex flex-col gap-5 rounded-2xl border border-border bg-surface p-7 shadow-sm"
+      transition={{ duration: reduced ? 0.3 : 0.65, delay: reduced ? 0 : index * 0.13, ease }}
+      className={cn(
+        'flex flex-col gap-5 rounded-2xl border border-border bg-surface p-7 shadow-sm',
+        !reduced && 'will-change-transform'
+      )}
     >
       {/* Icon + stat */}
       <div className="flex items-start justify-between gap-4">
@@ -83,6 +91,9 @@ function StoryCard({
 export function StorySection() {
   const hdrRef = useRef<HTMLDivElement>(null)
   const hdrInView = useInView(hdrRef, { once: true, margin: '-80px 0px' })
+  const reducedMotion = useReducedMotion() ?? false
+  const isMobile = useIsMobile()
+  const reduced = reducedMotion || isMobile
 
   return (
     <section id="hikaye" className="bg-sunken py-24 scroll-mt-24">
@@ -90,17 +101,17 @@ export function StorySection() {
         {/* Header */}
         <div ref={hdrRef} className="mb-16 max-w-2xl">
           <motion.p
-            initial={{ opacity: 0, y: 10 }}
+            initial={reduced ? { opacity: 0 } : { opacity: 0, y: 10 }}
             animate={hdrInView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.4, ease }}
+            transition={{ duration: reduced ? 0.25 : 0.4, ease }}
             className="mb-3 font-mono text-xs font-medium uppercase tracking-[0.18em] text-accent"
           >
             Üretim felsefemiz
           </motion.p>
           <motion.h2
-            initial={{ opacity: 0, y: 22 }}
+            initial={reduced ? { opacity: 0 } : { opacity: 0, y: 22 }}
             animate={hdrInView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.65, delay: 0.1, ease }}
+            transition={{ duration: reduced ? 0.35 : 0.65, delay: reduced ? 0 : 0.1, ease }}
             className="font-serif text-[clamp(2rem,5vw,3.5rem)] font-light italic leading-tight text-text"
           >
             Dalda ne yaşıyorsa,

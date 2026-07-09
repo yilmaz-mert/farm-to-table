@@ -4,8 +4,11 @@ import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import { motion, AnimatePresence, useInView, useReducedMotion } from 'framer-motion'
 import { X, Camera, Package, Cherry } from 'lucide-react'
+import { useIsMobile } from '@/hooks/useIsMobile'
+import { cn, shimmerBlurDataURL } from '@/lib/utils'
 
 const ease: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
+const GALLERY_BLUR = shimmerBlurDataURL(300, 300)
 
 type GalleryCategory = 'bahceden' | 'kutu_acilisi' | 'hasat_ani'
 
@@ -108,7 +111,11 @@ function resolveCategoryMeta(category: string): { label: string; Icon: typeof Ca
 }
 
 function Lightbox({ shot, onClose }: { shot: Shot; onClose: () => void }) {
-  const reduced = useReducedMotion() ?? false
+  const reducedMotion = useReducedMotion() ?? false
+  const isMobile = useIsMobile()
+  // Mobile gets a plain opacity fade — no scale/translate transform to
+  // composite during the gesture that opened it.
+  const reduced = reducedMotion || isMobile
   const closeRef = useRef<HTMLButtonElement>(null)
   const { label, Icon } = resolveCategoryMeta(shot.category)
 
@@ -156,6 +163,8 @@ function Lightbox({ shot, onClose }: { shot: Shot; onClose: () => void }) {
               fill
               sizes="(max-width: 640px) 100vw, 512px"
               quality={80}
+              placeholder="blur"
+              blurDataURL={GALLERY_BLUR}
               className="object-cover"
             />
           )}
@@ -198,20 +207,30 @@ function GalleryCard({
   onOpen: () => void
 }) {
   const ref = useRef<HTMLButtonElement>(null)
+  // Trigger a bit earlier on mobile so the (simplified) reveal is done
+  // scrolling into view rather than animating mid-scroll.
   const inView = useInView(ref, { once: true, margin: '-56px 0px' })
-  const reduced = useReducedMotion() ?? false
+  const reducedMotion = useReducedMotion() ?? false
+  const isMobile = useIsMobile()
+  // Mobile: skip the y-translate + per-card stagger entirely (both force
+  // a compositor layer + main-thread work on every scroll tick on
+  // low-power devices) — just a plain, instant-ish opacity fade.
+  const reduced = reducedMotion || isMobile
   const { label, Icon } = resolveCategoryMeta(shot.category)
 
   return (
     <motion.button
       ref={ref}
       onClick={onOpen}
-      initial={reduced ? false : { opacity: 0, y: 22 }}
+      initial={reduced ? { opacity: 0 } : { opacity: 0, y: 22 }}
       animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.55, delay: reduced ? 0 : (index % 3) * 0.09, ease }}
+      transition={{ duration: reduced ? 0.3 : 0.55, delay: reduced ? 0 : (index % 3) * 0.09, ease }}
       whileHover={reduced ? undefined : { y: -4 }}
-      whileTap={reduced ? undefined : { scale: 0.98 }}
-      className="group relative block overflow-hidden rounded-xl text-left shadow-sm"
+      whileTap={reducedMotion ? undefined : { scale: 0.98 }}
+      className={cn(
+        'group relative block overflow-hidden rounded-xl text-left shadow-sm',
+        !reduced && 'will-change-transform'
+      )}
       aria-label={`${shot.title} — büyüt`}
     >
       {/* Fixed aspect ratio guarantees zero layout shift */}
@@ -221,13 +240,19 @@ function GalleryCard({
           // and re-encodes to WebP via sharp — a raw multi-MB phone photo
           // never ships to the browser at full size just to fill this
           // small grid cell. `fill` inside the already aspect-locked
-          // parent keeps this a guaranteed zero-CLS layout.
+          // parent keeps this a guaranteed zero-CLS layout. Sizes match the
+          // actual rendered width per breakpoint (2-col grid below `sm`,
+          // 3-col from `sm` up) rather than a flat 100vw, which would
+          // needlessly ship a full-width image for a half-width mobile slot.
           <Image
             src={shot.imageUrl}
             alt={shot.title}
             fill
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 300px"
             quality={80}
+            loading="lazy"
+            placeholder="blur"
+            blurDataURL={GALLERY_BLUR}
             className="object-cover"
           />
         )}
@@ -264,7 +289,9 @@ interface GallerySectionProps {
 export function GallerySection({ shots: dbShots }: GallerySectionProps) {
   const hdrRef = useRef<HTMLDivElement>(null)
   const hdrInView = useInView(hdrRef, { once: true, margin: '-80px 0px' })
-  const reduced = useReducedMotion() ?? false
+  const reducedMotion = useReducedMotion() ?? false
+  const isMobile = useIsMobile()
+  const reduced = reducedMotion || isMobile
   const [openShot, setOpenShot] = useState<Shot | null>(null)
 
   const shots =
